@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+/.pnpm-store/
+
+# Build outputs
+dist/
+unpackage/
+build/
+coverage/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# WeChat DevTools local config
+project.private.config.json
+
+# Temporary files
+*.tmp
+*.temp

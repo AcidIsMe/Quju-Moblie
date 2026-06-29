@@ -1,0 +1,246 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "type": "home",
+      "style": {
+        "navigationBarTitleText": "趣聚"
+      }
+    },
+    {
+      "path": "pages/launch/index",
+      "style": {
+        "navigationBarTitleText": "趣聚"
+      }
+    },
+    {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/auth/register",
+      "style": {
+        "navigationBarTitleText": "注册"
+      }
+    },
+    {
+      "path": "pages/publish/index",
+      "style": {
+        "navigationBarTitleText": "发布活动"
+      }
+    },
+    {
+      "path": "pages/notifications/index",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
+    },
+    {
+      "path": "pages/me/index",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    }
+  ],
+  "globalStyle": {
+    "backgroundColor": "#F6F8F7",
+    "backgroundColorBottom": "#F6F8F7",
+    "backgroundColorTop": "#F6F8F7",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "趣聚"
+  },
+  "tabBar": {
+    "color": "#667085",
+    "selectedColor": "#16A34A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/publish/index",
+        "text": "发布"
+      },
+      {
+        "pagePath": "pages/notifications/index",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/me/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "subPackages": [
+    {
+      "root": "subpkg-activity",
+      "pages": [
+        {
+          "path": "detail/index",
+          "style": {
+            "navigationBarTitleText": "活动详情"
+          }
+        },
+        {
+          "path": "search/index",
+          "style": {
+            "navigationBarTitleText": "搜索活动"
+          }
+        },
+        {
+          "path": "map/index",
+          "style": {
+            "navigationBarTitleText": "地图模式"
+          }
+        },
+        {
+          "path": "create/index",
+          "style": {
+            "navigationBarTitleText": "创建活动"
+          }
+        },
+        {
+          "path": "location-picker/index",
+          "style": {
+            "navigationBarTitleText": "选择地点"
+          }
+        },
+        {
+          "path": "registration-confirm/index",
+          "style": {
+            "navigationBarTitleText": "确认报名"
+          }
+        },
+        {
+          "path": "my-created/index",
+          "style": {
+            "navigationBarTitleText": "我发布的"
+          }
+        },
+        {
+          "path": "my-joined/index",
+          "style": {
+            "navigationBarTitleText": "我报名的"
+          }
+        },
+        {
+          "path": "participants/index",
+          "style": {
+            "navigationBarTitleText": "参与者"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpkg-user",
+      "pages": [
+        {
+          "path": "profile-edit/index",
+          "style": {
+            "navigationBarTitleText": "编辑资料"
+          }
+        },
+        {
+          "path": "public-profile/index",
+          "style": {
+            "navigationBarTitleText": "个人主页"
+          }
+        },
+        {
+          "path": "merchant-register/index",
+          "style": {
+            "navigationBarTitleText": "商家入驻"
+          }
+        },
+        {
+          "path": "merchant-profile/index",
+          "style": {
+            "navigationBarTitleText": "商家资料"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpkg-social",
+      "pages": [
+        {
+          "path": "friends/index",
+          "style": {
+            "navigationBarTitleText": "好友"
+          }
+        },
+        {
+          "path": "friend-requests/index",
+          "style": {
+            "navigationBarTitleText": "好友申请"
+          }
+        },
+        {
+          "path": "teams/index",
+          "style": {
+            "navigationBarTitleText": "小队"
+          }
+        },
+        {
+          "path": "team-detail/index",
+          "style": {
+            "navigationBarTitleText": "小队详情"
+          }
+        },
+        {
+          "path": "team-create/index",
+          "style": {
+            "navigationBarTitleText": "创建小队"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpkg-activity-plus",
+      "pages": [
+        {
+          "path": "templates/index",
+          "style": {
+            "navigationBarTitleText": "活动模板"
+          }
+        },
+        {
+          "path": "drafts/index",
+          "style": {
+            "navigationBarTitleText": "草稿箱"
+          }
+        },
+        {
+          "path": "check-in/index",
+          "style": {
+            "navigationBarTitleText": "扫码签到"
+          }
+        },
+        {
+          "path": "check-in-manage/index",
+          "style": {
+            "navigationBarTitleText": "签到管理"
+          }
+        },
+        {
+          "path": "reviews/index",
+          "style": {
+            "navigationBarTitleText": "活动评价"
+          }
+        },
+        {
+          "path": "summary-edit/index",
+          "style": {
+            "navigationBarTitleText": "活动总结"
+          }
+        }
+      ]
+    }
+  ]
+}
