@@ -21,7 +21,22 @@ export interface UserProfile {
   status: 'pending_activation' | 'pending_merchant_review' | 'active' | 'banned'
   credit_score: number
   interest_tags: string[]
+  created_at?: string
 }
+
+/** 公开用户主页信息 */
+export interface PublicUserProfile extends UserProfile {
+  friendship_status?: 'pending' | 'accepted' | 'blocked' | null
+  follow_status?: 'following' | 'followed' | 'mutual' | null
+  stats?: {
+    activity_count: number
+    follower_count: number
+    following_count: number
+  }
+}
+
+export type ActivityRegistrationStatus = 'not_registered' | 'registered' | 'cancelled' | 'checked_in' | 'in_waitlist'
+export type ActivityDisplayStatus = 'not_started' | 'registering' | 'registration_closed' | 'in_progress' | 'ended' | 'taken_down'
 
 export interface Activity {
   id: string
@@ -46,6 +61,15 @@ export interface Activity {
   distance_text?: string
   status: ActivityStatus
   creator?: Pick<UserProfile, 'id' | 'nickname' | 'avatar_url'>
+  /** 后端返回的标准化报名状态 */
+  registration_status?: ActivityRegistrationStatus
+  /** 后端返回的前端展示状态标识 */
+  display_status?: ActivityDisplayStatus
+  review_reason?: string
+  is_team_activity?: boolean
+  team_id?: string
+  created_at?: string
+  /** 前端便捷属性：是否已报名（由 registration_status 派生） */
   joined?: boolean
 }
 
@@ -56,13 +80,7 @@ export interface NotificationItem {
   content: string
   is_read: boolean
   created_at: string
+  metadata?: Record<string, unknown>
 }
 
-export interface PageResult<T> {
-  data: T[]
-  pagination: {
-    next_cursor?: string
-    has_more: boolean
-    limit: number
-  }
-}
+// 分页相关类型已统一迁移至 services/http.ts 的 ApiResponse<T> 和 RequestResult<T>

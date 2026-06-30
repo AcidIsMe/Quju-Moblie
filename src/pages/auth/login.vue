@@ -19,19 +19,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { ApiError } from '../../services/http'
 import { navigateTo, routes } from '../../utils/routes'
 
-const email = ref('demo@quju.local')
-const password = ref('Abc12345')
+const email = ref('')
+const password = ref('')
 const loading = ref(false)
 
+const ERROR_MSG: Record<string, string> = {
+  '40101': '邮箱或密码错误',
+  '40102': '账户尚未激活，请先完成邮箱激活',
+  '40103': '账户已被封禁，如有疑问请联系平台',
+  '42901': '密码错误次数过多，请15分钟后重试',
+}
+
 async function submit() {
+  if (!email.value || !password.value) {
+    uni.showToast({ title: '请输入邮箱和密码', icon: 'none' })
+    return
+  }
   try {
     loading.value = true
     await useAuthStore().login(email.value, password.value)
     uni.switchTab({ url: routes.home })
   } catch (error) {
-    uni.showToast({ title: error instanceof Error ? error.message : '登录失败', icon: 'none' })
+    const apiError = error as ApiError
+    const msg = ERROR_MSG[apiError.code] || apiError.message || '登录失败'
+    uni.showToast({ title: msg, icon: 'none' })
   } finally {
     loading.value = false
   }

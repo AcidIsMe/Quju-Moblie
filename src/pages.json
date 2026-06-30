@@ -2,6 +2,7 @@
   "pages": [
     {
       "path": "pages/launch/index",
+      "path": "pages/launch/index",
       "style": {
         "navigationBarTitleText": "趣聚"
       }
@@ -10,7 +11,8 @@
       "path": "pages/home/index",
       "type": "home",
       "style": {
-        "navigationBarTitleText": "趣聚"
+        "navigationBarTitleText": "趣聚",
+        "enablePullDownRefresh": true
       }
     },
     {
