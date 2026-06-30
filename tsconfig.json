@@ -19,7 +19,7 @@
       "ESNext"
     ],
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "jsx": "preserve",
     "jsxImportSource": "vue",
@@ -37,8 +37,9 @@
       "@uni-helper/uni-types/volar-plugin"
     ]
   },
-  "includes": [
+  "include": [
     "src/**/*.ts",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    "src/**/*.vue"
   ]
 }

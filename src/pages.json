@@ -1,14 +1,14 @@
 {
   "pages": [
     {
-      "path": "pages/home/index",
-      "type": "home",
+      "path": "pages/launch/index",
       "style": {
         "navigationBarTitleText": "趣聚"
       }
     },
     {
-      "path": "pages/launch/index",
+      "path": "pages/home/index",
+      "type": "home",
       "style": {
         "navigationBarTitleText": "趣聚"
       }
