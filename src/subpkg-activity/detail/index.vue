@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" v-if="activity">
     <!-- 封面区 -->
     <view class="hero">
       <image v-if="activity.cover_image_url" :src="activity.cover_image_url" class="hero-img" mode="aspectFill" />
@@ -107,24 +107,32 @@ import { onLoad } from '@dcloudio/uni-app'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import ActivityStatusTag from '../../components/activity-status-tag.vue'
 import TagList from '../../components/tag-list.vue'
-import { findMockActivity } from '../../services/discover'
+import { getActivityDetail } from '../../services/discover'
+import { cancelRegistration, joinWaitlist as joinActivityWaitlist } from '../../services/activity'
 import type { Activity } from '../../types/domain'
 import { formatCapacity, formatFee } from '../../utils/format'
 import { navigateTo, routes } from '../../utils/routes'
 
-const activity = ref<Activity>(findMockActivity())
+const activity = ref<Activity | null>(null)
 
-onLoad((query) => {
-  activity.value = findMockActivity(query?.id as string)
+onLoad(async (query) => {
+  if (query?.id) {
+    try {
+      const result = await getActivityDetail(query.id as string)
+      activity.value = result.data
+    } catch { /* handle error */ }
+  }
 })
 
-const creatorInitial = computed(() => activity.value.creator?.nickname?.slice(0, 1) || '?')
+const a = computed(() => activity.value!)
+
+const creatorInitial = computed(() => a.value.creator?.nickname?.slice(0, 1) || '?')
 
 const thumbMarker = computed(() => [
   {
     id: 1,
-    latitude: activity.value.location_lat,
-    longitude: activity.value.location_lng,
+    latitude: a.value.location_lat,
+    longitude: a.value.location_lng,
     iconPath: '/static/map-marker.png',
     width: 24,
     height: 24,
@@ -135,8 +143,8 @@ const thumbMarker = computed(() => [
 type BtnState = 'can_register' | 'registered' | 'full' | 'deadline_passed' | 'ended' | 'taken_down'
 
 const btnState = computed<BtnState>(() => {
-  const s = activity.value.status
-  const joined = activity.value.joined
+  const s = a.value.status
+  const joined = a.value.joined
 
   // 已下架
   if (s === 'taken_down') return 'taken_down'
@@ -154,7 +162,7 @@ const btnState = computed<BtnState>(() => {
     // 已报名
     if (joined) return 'registered'
     // 满员
-    if (activity.value.current_participants >= activity.value.max_participants) return 'full'
+    if (a.value.current_participants >= a.value.max_participants) return 'full'
     // 可报名
     return 'can_register'
   }
@@ -163,24 +171,36 @@ const btnState = computed<BtnState>(() => {
 })
 
 // ---- 操作 ----
-function cancelJoin() {
+async function cancelJoin() {
+  if (!activity.value) return
   uni.showModal({
     title: '确定取消报名？',
     content: '取消后名额将释放给他人。',
     confirmText: '确定取消',
     cancelText: '暂不取消',
-    success(res) {
+    success: async (res) => {
       if (res.confirm) {
-        activity.value.joined = false
-        activity.value.current_participants = Math.max(0, activity.value.current_participants - 1)
-        uni.showToast({ title: '已取消报名', icon: 'success' })
+        try {
+          await cancelRegistration(activity.value!.id)
+          activity.value!.joined = false
+          activity.value!.current_participants = Math.max(0, activity.value!.current_participants - 1)
+          uni.showToast({ title: '已取消报名', icon: 'success' })
+        } catch {
+          uni.showToast({ title: '取消失败，请重试', icon: 'none' })
+        }
       }
     },
   })
 }
 
-function joinWaitlist() {
-  uni.showToast({ title: '等待队列将在 P1 迭代实现', icon: 'none' })
+async function joinWaitlist() {
+  if (!activity.value) return
+  try {
+    const result = await joinActivityWaitlist(activity.value.id)
+    uni.showToast({ title: `已加入等待队列，前方 ${result.data?.waiting_count_ahead ?? '?'} 人`, icon: 'success' })
+  } catch {
+    uni.showToast({ title: '加入等待队列失败', icon: 'none' })
+  }
 }
 
 function openMap() {
@@ -188,7 +208,7 @@ function openMap() {
 }
 
 function goToCreator() {
-  const id = activity.value.creator?.id
+  const id = activity.value?.creator?.id
   if (id) {
     navigateTo(`${routes.publicProfile}?id=${id}`)
   }

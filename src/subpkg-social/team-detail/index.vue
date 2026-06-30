@@ -2,20 +2,20 @@
   <view class="page">
     <view class="hero">
       <view class="hero-main">
-        <text class="eyebrow">{{ team.join_type === 'public' ? '公开小队' : '审核加入' }}</text>
-        <text class="title">{{ team.name }}</text>
-        <text class="desc">{{ team.description }}</text>
-        <tag-list :tags="team.interest_tags" />
+        <text class="eyebrow">{{ team?.join_type === 'public' ? '公开小队' : '审核加入' }}</text>
+        <text class="title">{{ team?.name }}</text>
+        <text class="desc">{{ team?.description }}</text>
+        <tag-list :tags="team?.interest_tags || []" />
       </view>
       <view class="member-ring">
-        <text class="count">{{ team.current_members }}</text>
+        <text class="count">{{ team?.current_members }}</text>
         <text class="label">成员</text>
       </view>
     </view>
 
     <view class="stats">
       <view class="stat">
-        <text class="value">{{ team.max_members }}</text>
+        <text class="value">{{ team?.max_members }}</text>
         <text class="label">人数上限</text>
       </view>
       <view class="stat">
@@ -23,7 +23,7 @@
         <text class="label">近期活动</text>
       </view>
       <view class="stat">
-        <text class="value">{{ team.join_type === 'public' ? '直接' : '审核' }}</text>
+        <text class="value">{{ team?.join_type === 'public' ? '直接' : '审核' }}</text>
         <text class="label">加入方式</text>
       </view>
     </view>
@@ -31,7 +31,7 @@
     <view class="panel">
       <view class="panel-title">
         <text>成员预览</text>
-        <text class="hint">共 {{ team.current_members }} 人</text>
+        <text class="hint">共 {{ team?.current_members }} 人</text>
       </view>
       <view class="members">
         <view v-for="friend in members" :key="friend.id" class="member" @tap="navigateTo(`${routes.publicProfile}?id=${friend.id}`)">
@@ -44,43 +44,55 @@
     <view class="panel">
       <view class="panel-title">
         <text>小队活动</text>
-        <text class="hint">mock 数据</text>
+        <text class="hint">共 {{ activeActivities.length }} 个</text>
       </view>
       <activity-card v-for="activity in activeActivities" :key="activity.id" :activity="activity" />
     </view>
 
     <view class="bottom-bar">
       <button class="ghost" @tap="shareTeam">分享</button>
-      <button class="primary-action" @tap="joinTeam">{{ joined ? '已加入' : '申请加入' }}</button>
+      <button class="primary-action" @tap="joinTeamAction">{{ joined ? '已加入' : '申请加入' }}</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import TagList from '../../components/tag-list.vue'
-import { mockActivities, mockFriends, mockTeams } from '../../mocks/activities'
+import { getTeamDetail, joinTeam as joinTeamApi } from '../../services/team'
 import { navigateTo, routes } from '../../utils/routes'
+import type { Team } from '../../types/domain'
 
 const joined = ref(false)
-const team = mockTeams[0]
-const members = mockFriends
+const team = ref<Team | null>(null)
+const members = ref<any[]>([])
+const activeActivities = ref<any[]>([])
 
-const activeActivities = computed(() =>
-  mockActivities.slice(0, 2).map((activity) => ({
-    ...activity,
-    is_team_activity: true,
-    team_id: team.id,
-  })),
-)
+onLoad(async (query) => {
+  const id = query?.id as string
+  if (id) {
+    try {
+      const result = await getTeamDetail(id)
+      const data = result.data as any
+      team.value = data
+      if (data.members) members.value = data.members
+      if (data.activities) activeActivities.value = data.activities
+    } catch { /* silent */ }
+  }
+})
 
-function joinTeam() {
-  joined.value = true
-  uni.showToast({
-    title: team.join_type === 'public' ? '已加入小队' : '申请已提交',
-    icon: 'success',
-  })
+async function joinTeamAction() {
+  if (team.value) {
+    try {
+      await joinTeamApi(team.value.id)
+      joined.value = true
+      uni.showToast({ title: team.value.join_type === 'public' ? '已加入小队' : '申请已提交', icon: 'success' })
+    } catch {
+      uni.showToast({ title: '操作失败', icon: 'none' })
+    }
+  }
 }
 
 function shareTeam() {

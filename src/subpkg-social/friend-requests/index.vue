@@ -16,9 +16,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import EmptyState from '../../components/empty-state.vue'
-import { mockFriendRequests } from '../../mocks/activities'
 
-const requests = ref([...mockFriendRequests])
+const requests = ref<any[]>([])
 
 function handle(id: string, accepted: boolean) {
   requests.value = requests.value.filter((item) => item.id !== id)

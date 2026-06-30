@@ -32,30 +32,60 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import TagList from '../../components/tag-list.vue'
-import { mockActivities, mockUser } from '../../mocks/activities'
+import { getUserPublicInfo, sendFriendRequest, followUser, unfollowUser } from '../../services/user'
 
 const requested = ref(false)
 const followed = ref(false)
-const profile = {
-  ...mockUser,
-  nickname: '山野同频',
-  bio: '周末组织轻徒步，也喜欢城市里慢慢走。',
-  interest_tags: ['户外', '徒步', '城市探索'],
+const profile = ref<any>({ nickname: '', bio: '', interest_tags: [], credit_score: 0 })
+const activities = ref<any[]>([])
+
+onLoad(async (query) => {
+  const id = query?.id as string
+  if (id) {
+    try {
+      const result = await getUserPublicInfo(id)
+      const data = result.data
+      profile.value = data
+      if (data.activities) activities.value = data.activities
+      if (data.follow_status) followed.value = data.follow_status === 'following' || data.follow_status === 'mutual'
+    } catch { /* silent */ }
+  }
+})
+
+async function addFriend() {
+  const id = profile.value.id
+  if (id) {
+    try {
+      await sendFriendRequest(id)
+      requested.value = true
+      uni.showToast({ title: '好友申请已发送', icon: 'success' })
+    } catch {
+      uni.showToast({ title: '申请失败', icon: 'none' })
+    }
+  }
 }
 
-const activities = computed(() => mockActivities.slice(0, 2))
-
-function addFriend() {
-  requested.value = true
-  uni.showToast({ title: '好友申请已发送', icon: 'success' })
-}
-
-function follow() {
-  followed.value = true
-  uni.showToast({ title: '已关注', icon: 'success' })
+async function follow() {
+  const id = profile.value.id
+  if (id) {
+    try {
+      if (followed.value) {
+        await unfollowUser(id)
+        followed.value = false
+        uni.showToast({ title: '已取消关注', icon: 'success' })
+      } else {
+        await followUser(id)
+        followed.value = true
+        uni.showToast({ title: '已关注', icon: 'success' })
+      }
+    } catch {
+      uni.showToast({ title: '操作失败', icon: 'none' })
+    }
+  }
 }
 </script>
 

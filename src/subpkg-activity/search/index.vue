@@ -78,7 +78,7 @@ import { ref } from 'vue'
 import { onReachBottom } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
-import { mockActivities } from '../../mocks/activities'
+import { searchActivities, getDiscoverActivities } from '../../services/discover'
 import type { Activity } from '../../types/domain'
 import { navigateTo, routes } from '../../utils/routes'
 
@@ -93,7 +93,13 @@ const results = ref<Activity[]>([])
 const loadingMore = ref(false)
 const hasMore = ref(true)
 
-const hotActivities = ref<Activity[]>(mockActivities.slice(0, 6))
+const hotActivities = ref<Activity[]>([])
+const cursor = ref<string | undefined>(undefined)
+
+// 加载热门推荐
+getDiscoverActivities('recommended', { limit: 6 }).then(res => {
+  hotActivities.value = res.data
+})
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -128,6 +134,7 @@ async function doSearch(reset = true) {
     searching.value = true
     results.value = []
     hasMore.value = true
+    cursor.value = undefined
   } else {
     if (!hasMore.value || loadingMore.value) return
     loadingMore.value = true
@@ -135,28 +142,27 @@ async function doSearch(reset = true) {
 
   searched.value = true
 
-  // 模拟网络延迟
-  await delay(300)
+  try {
+    const res = await searchActivities({ q, cursor: cursor.value, limit: PAGE_SIZE })
 
-  const filtered = mockActivities.filter(
-    item =>
-      item.title.includes(q) ||
-      item.description.includes(q) ||
-      item.tags.some(tag => tag.includes(q))
-  )
+    if (reset) {
+      results.value = res.data
+      searching.value = false
+    } else {
+      results.value = [...results.value, ...res.data]
+      loadingMore.value = false
+    }
 
-  const start = reset ? 0 : results.value.length
-  const page = filtered.slice(start, start + PAGE_SIZE)
-
-  if (reset) {
-    results.value = page
-    searching.value = false
-  } else {
-    results.value = [...results.value, ...page]
-    loadingMore.value = false
+    cursor.value = res.pagination?.next_cursor
+    hasMore.value = res.pagination?.has_more ?? false
+  } catch (_error) {
+    if (reset) {
+      searching.value = false
+    } else {
+      loadingMore.value = false
+    }
+    uni.showToast({ title: '搜索失败，请稍后重试', icon: 'none' })
   }
-
-  hasMore.value = results.value.length < filtered.length
 }
 
 function showFilter() {
@@ -169,10 +175,6 @@ onReachBottom(() => {
     doSearch(false)
   }
 })
-
-function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 </script>
 
 <style scoped lang="scss">

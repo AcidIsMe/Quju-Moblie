@@ -14,7 +14,7 @@ export interface RequestResult<T> {
   pagination?: ApiResponse<T>['pagination']
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api'
 
 /** 请求失败时抛出的错误，包含业务错误码和消息 */
 export class ApiError extends Error {
@@ -26,13 +26,23 @@ export class ApiError extends Error {
   }
 }
 
-export function request<T>(options: UniApp.RequestOptions): Promise<RequestResult<T>> {
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS'
+
+interface RequestOptions {
+  url: string
+  method?: HttpMethod
+  data?: any
+  header?: Record<string, string>
+}
+
+export function request<T>(options: RequestOptions): Promise<RequestResult<T>> {
   const token = uni.getStorageSync('access_token')
 
   return new Promise((resolve, reject) => {
     uni.request({
-      ...options,
       url: `${BASE_URL}${options.url}`,
+      method: options.method as any,
+      data: options.data,
       header: {
         ...(options.header || {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

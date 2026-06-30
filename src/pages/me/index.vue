@@ -19,15 +19,15 @@
 
     <view class="stats">
       <view>
-        <text class="num">3</text>
+        <text class="num">{{ stats.created }}</text>
         <text class="label">发布</text>
       </view>
       <view>
-        <text class="num">5</text>
+        <text class="num">{{ stats.joined }}</text>
         <text class="label">报名</text>
       </view>
       <view>
-        <text class="num">12</text>
+        <text class="num">{{ stats.friends }}</text>
         <text class="label">好友</text>
       </view>
     </view>
@@ -87,14 +87,34 @@
 
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
-import { computed } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import { useAuthStore } from '../../stores/auth'
+import { getMyCreatedActivities, getMyJoinedActivities, getFriends } from '../../services/user'
 import { navigateTo, routes } from '../../utils/routes'
 
 const auth = useAuthStore()
 auth.restore()
-onShow(() => auth.restore())
+
+const stats = reactive({ created: 0, joined: 0, friends: 0 })
+
+async function loadStats() {
+  try {
+    const [createdRes, joinedRes, friendsRes] = await Promise.all([
+      getMyCreatedActivities(undefined, 100),
+      getMyJoinedActivities(undefined, 100),
+      getFriends(),
+    ])
+    stats.created = createdRes.data.length
+    stats.joined = joinedRes.data.length
+    stats.friends = friendsRes.data.length
+  } catch { /* 静默失败 */ }
+}
+
+onShow(() => {
+  auth.restore()
+  if (auth.state.user) loadStats()
+})
 
 const user = computed(() => auth.state.user)
 const initial = computed(() => user.value?.nickname?.slice(0, 1) || '趣')

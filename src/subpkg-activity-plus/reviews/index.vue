@@ -15,18 +15,38 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { mockReviews } from '../../mocks/activities'
+import { onLoad } from '@dcloudio/uni-app'
+import { getReviews, createReview } from '../../services/activity'
 
+const activityId = ref('')
 const content = ref('')
-const reviews = ref([...mockReviews])
+const reviews = ref<any[]>([])
 
-function submit() {
+onLoad((query) => {
+  activityId.value = (query?.id as string) || ''
+  if (activityId.value) loadReviews()
+})
+
+async function loadReviews() {
+  try {
+    const result = await getReviews(activityId.value)
+    reviews.value = result.data
+  } catch { /* silent */ }
+}
+
+async function submit() {
   if (!content.value.trim()) {
     uni.showToast({ title: '请输入评价内容', icon: 'none' })
     return
   }
-  reviews.value.unshift({ id: Date.now().toString(), nickname: '我', content: content.value, created_at: '刚刚' })
-  content.value = ''
+  try {
+    await createReview(activityId.value, content.value)
+    content.value = ''
+    uni.showToast({ title: '评价成功', icon: 'success' })
+    loadReviews()
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '评价失败', icon: 'none' })
+  }
 }
 </script>
 

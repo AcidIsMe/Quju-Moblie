@@ -112,7 +112,7 @@ import { onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
-import { getMockActivities, type DiscoverTab } from '../../services/discover'
+import { getDiscoverActivities, type DiscoverTab } from '../../services/discover'
 import { useAuthStore } from '../../stores/auth'
 import { useLocationStore } from '../../stores/location'
 import { navigateTo, routes } from '../../utils/routes'
@@ -150,22 +150,39 @@ async function fetchData(reset: boolean) {
     loadingMore.value = true
   }
 
-  // 模拟网络延迟
-  await delay(400)
+  try {
+    const params: { cursor?: string; limit: number; lat?: number; lng?: number } = {
+      cursor: cursor.value,
+      limit: PAGE_SIZE,
+    }
 
-  const all = getMockActivities(currentTab.value)
-  const start = reset ? 0 : activities.value.length
-  const page = all.slice(start, start + PAGE_SIZE)
+    if (currentTab.value === 'nearby') {
+      const loc = locationStore.state
+      if (loc.authorized) {
+        params.lat = loc.latitude
+        params.lng = loc.longitude
+      }
+    }
 
-  if (reset) {
-    activities.value = page
-    loading.value = false
-  } else {
-    activities.value = [...activities.value, ...page]
-    loadingMore.value = false
+    const result = await getDiscoverActivities(currentTab.value, params)
+
+    if (reset) {
+      activities.value = result.data
+      loading.value = false
+    } else {
+      activities.value = [...activities.value, ...result.data]
+      loadingMore.value = false
+    }
+
+    cursor.value = result.pagination?.next_cursor
+    hasMore.value = result.pagination?.has_more ?? false
+  } catch {
+    if (reset) {
+      loading.value = false
+    } else {
+      loadingMore.value = false
+    }
   }
-
-  hasMore.value = activities.value.length < all.length
 
   if (reset) {
     uni.stopPullDownRefresh()
@@ -231,9 +248,6 @@ onReachBottom(() => {
   fetchData(false)
 })
 
-function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 </script>
 
 <style scoped lang="scss">

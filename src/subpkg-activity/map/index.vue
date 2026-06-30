@@ -46,7 +46,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
-import { mockActivities } from '../../mocks/activities'
+import { getMapActivities } from '../../services/discover'
 import { useLocationStore } from '../../stores/location'
 import { navigateTo, routes } from '../../utils/routes'
 import type { Activity } from '../../types/domain'
@@ -59,10 +59,11 @@ const scale = ref(12)
 const locationAuthorized = ref(false)
 const selected = ref<Activity | null>(null)
 const loaded = ref(false)
+const activities = ref<Activity[]>([])
 
 // markers 计算
 const markers = computed(() =>
-  mockActivities.map((item, index) => ({
+  activities.value.map((item, index) => ({
     id: index,
     latitude: item.location_lat,
     longitude: item.location_lng,
@@ -100,16 +101,32 @@ function initLocation() {
       locationStore.state.authorized = true
       locationStore.state.latitude = res.latitude
       locationStore.state.longitude = res.longitude
-      if (!loaded.value) {
-        loaded.value = true
-        fitAllMarkers()
-      }
+      loadActivities()
     },
     fail() {
       locationAuthorized.value = false
-      fitAllMarkers()
+      loadActivities()
     },
   })
+}
+
+async function loadActivities() {
+  try {
+    const offset = 0.3
+    const result = await getMapActivities(
+      centerLat.value - offset,
+      centerLng.value - offset,
+      centerLat.value + offset,
+      centerLng.value + offset,
+    )
+    activities.value = result.data
+    if (!loaded.value) {
+      loaded.value = true
+      fitAllMarkers()
+    }
+  } catch {
+    // silent
+  }
 }
 
 function requestLocation() {
@@ -132,7 +149,7 @@ function moveToCurrent() {
 
 // ---- 自动缩放适配所有点位 ----
 function fitAllMarkers() {
-  const points = mockActivities.map(item => ({
+  const points = activities.value.map(item => ({
     latitude: item.location_lat,
     longitude: item.location_lng,
   }))
@@ -148,18 +165,30 @@ function fitAllMarkers() {
 
 // ---- Marker 点击 ----
 function onMarkerTap(event: { detail: { markerId: number } }) {
-  selected.value = mockActivities[event.detail.markerId] || null
+  selected.value = activities.value[event.detail.markerId] || null
 }
 
 // ---- 视野变化 ----
 let regionTimer: ReturnType<typeof setTimeout> | null = null
 function onRegionChange(_e: any) {
-  // 视野变化后可以按新范围重新请求点位
-  // 当前使用 Mock 数据，暂不重新请求
-  // 对接真实 API 后调用 GET /api/discover/map?sw_lat=&sw_lng=&ne_lat=&ne_lng=
   if (regionTimer) clearTimeout(regionTimer)
-  regionTimer = setTimeout(() => {
-    // 预留：按视野范围重新加载 markers
+  regionTimer = setTimeout(async () => {
+    try {
+      const mapCtx = uni.createMapContext('discoverMap')
+      mapCtx.getRegion({
+        success: async (res) => {
+          const result = await getMapActivities(
+            res.southwest.latitude,
+            res.southwest.longitude,
+            res.northeast.latitude,
+            res.northeast.longitude,
+          )
+          activities.value = result.data
+        },
+      })
+    } catch {
+      // silent
+    }
   }, 500)
 }
 

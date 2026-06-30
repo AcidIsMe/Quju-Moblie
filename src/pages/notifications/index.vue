@@ -54,15 +54,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import EmptyState from '../../components/empty-state.vue'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
-import { mockNotifications } from '../../mocks/activities'
+import { getNotifications, markRead as markReadApi } from '../../services/notification'
+import type { NotificationItem } from '../../types/domain'
 
 type NoticeTab = 'all' | 'unread' | 'activity' | 'system'
 
 const currentTab = ref<NoticeTab>('all')
-const notifications = ref(mockNotifications.map((item) => ({ ...item })))
+const notifications = ref<NotificationItem[]>([])
+
+onMounted(async () => {
+  try {
+    const result = await getNotifications()
+    notifications.value = result.data
+  } catch { /* silent */ }
+})
 const unreadCount = computed(() => notifications.value.filter((item) => !item.is_read).length)
 
 const tabs = computed(() => [
@@ -86,9 +94,12 @@ function noticeMeta(type: string) {
   return { icon: 'notification-filled', label: '系统消息', className: 'system' }
 }
 
-function markRead(id: string) {
+async function markRead(id: string) {
   const item = notifications.value.find((notice) => notice.id === id)
   if (item) item.is_read = true
+  try {
+    await markReadApi(id)
+  } catch { /* silent */ }
 }
 
 function markAllRead() {

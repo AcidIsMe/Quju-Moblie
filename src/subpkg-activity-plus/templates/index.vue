@@ -34,20 +34,39 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import TagList from '../../components/tag-list.vue'
-import { mockTemplates } from '../../mocks/activities'
+import { getTemplates, useTemplate as useTemplateApi } from '../../services/activity'
+import type { ActivityTemplate } from '../../types/domain'
 
-const categories = ['全部', '户外徒步', '桌游聚会', '城市探索']
+const categories = ref<string[]>(['全部'])
 const currentCategory = ref('全部')
+const templates = ref<ActivityTemplate[]>([])
 
-const filteredTemplates = computed(() => {
-  if (currentCategory.value === '全部') return mockTemplates
-  return mockTemplates.filter((item) => item.category === currentCategory.value)
+onMounted(async () => {
+  try {
+    const result = await getTemplates()
+    const data = result.data as any
+    if (data.categories) categories.value = ['全部', ...data.categories]
+    if (data.templates) templates.value = data.templates
+  } catch { /* silent */ }
 })
 
-function useTemplate(name: string) {
-  uni.showToast({ title: `已基于「${name}」生成草稿`, icon: 'none' })
+const filteredTemplates = computed(() => {
+  if (currentCategory.value === '全部') return templates.value
+  return templates.value.filter((item) => item.category === currentCategory.value)
+})
+
+async function useTemplate(name: string) {
+  const tpl = templates.value.find((t) => t.name === name)
+  if (tpl) {
+    try {
+      await useTemplateApi(tpl.id)
+      uni.showToast({ title: `已基于「${name}」生成草稿`, icon: 'none' })
+    } catch {
+      uni.showToast({ title: '使用模板失败', icon: 'none' })
+    }
+  }
 }
 </script>
 

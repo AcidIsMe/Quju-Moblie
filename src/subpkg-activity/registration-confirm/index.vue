@@ -51,15 +51,24 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { findMockActivity } from '../../services/discover'
+import { getActivityDetail } from '../../services/discover'
+import { registerActivity } from '../../services/activity'
+import { ApiError } from '../../services/http'
 import { useAuthStore } from '../../stores/auth'
 import type { Activity } from '../../types/domain'
 import { formatFee } from '../../utils/format'
 
-const activity = ref<Activity>(findMockActivity())
+const activity = ref<Activity>({} as Activity)
 
 onLoad((query) => {
-  activity.value = findMockActivity(query?.id as string)
+  const id = query?.id as string
+  if (id) {
+    getActivityDetail(id).then(res => {
+      activity.value = res.data
+    }).catch(() => {
+      uni.showToast({ title: '加载活动详情失败', icon: 'none' })
+    })
+  }
 })
 
 const auth = useAuthStore()
@@ -140,7 +149,7 @@ function calcAge(birthday: string): number {
 }
 
 // ---- 提交 ----
-function confirm() {
+async function confirm() {
   if (!canSubmit.value) {
     const fail = checks.value.find(c => !c.pass)
     if (fail) {
@@ -153,24 +162,23 @@ function confirm() {
   submitting.value = true
   errorMsg.value = ''
 
-  // 模拟提交
-  setTimeout(() => {
-    submitting.value = false
-    const a = activity.value
-    a.joined = true
-    a.current_participants = Math.min(a.max_participants, a.current_participants + 1)
-
-    // 回传状态给详情页
+  try {
+    await registerActivity(activity.value.id, { phone: phone.value, remark: remark.value })
     uni.showModal({
       title: '报名成功',
       content: '你可以在「我的 — 我报名的活动」查看状态。',
       showCancel: false,
       success() {
-        // 回退到详情页，detail 页 onShow 会刷新
         uni.navigateBack()
       },
     })
-  }, 600)
+  } catch (error) {
+    const apiError = error as ApiError
+    errorMsg.value = apiError.message || '报名失败'
+    uni.showToast({ title: errorMsg.value, icon: 'none' })
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 

@@ -5,10 +5,19 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import ActivityCard from '../../components/activity-card.vue'
-import { mockActivities } from '../../mocks/activities'
+import { getMyCreatedActivities } from '../../services/user'
+import type { Activity } from '../../types/domain'
 
-const activities = mockActivities.slice(0, 2)
+const activities = ref<Activity[]>([])
+
+onMounted(async () => {
+  try {
+    const result = await getMyCreatedActivities()
+    activities.value = result.data
+  } catch { /* silent */ }
+})
 </script>
 
 <style scoped lang="scss">

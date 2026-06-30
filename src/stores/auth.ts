@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { getStoredUser, mockLogin } from '../services/auth'
+import { getStoredUser, login as serviceLogin } from '../services/auth'
 import type { UserProfile } from '../types/domain'
 
 const state = reactive({
@@ -14,8 +14,9 @@ export function useAuthStore() {
   }
 
   async function login(email: string, password: string) {
-    state.user = await mockLogin(email, password)
-    state.token = uni.getStorageSync('access_token') || ''
+    const result = await serviceLogin(email, password)
+    state.token = result.access_token
+    state.user = result.user
   }
 
   function logout() {
