@@ -1,7 +1,88 @@
 <template>
-  <feature-placeholder title="草稿箱" description="P1 接入草稿保存、继续编辑和删除草稿。" />
+  <view class="page">
+    <view class="header">
+      <text class="title">草稿箱</text>
+      <text class="subtitle">保存未完成的活动，稍后继续编辑。</text>
+    </view>
+
+    <view v-for="draft in drafts" :key="draft.id" class="draft-card">
+      <activity-card :activity="draft" />
+      <view class="actions">
+        <button @tap="continueEdit">继续编辑</button>
+        <button class="danger" @tap="removeDraft(draft.id)">删除</button>
+      </view>
+    </view>
+
+    <empty-state v-if="drafts.length === 0" title="暂无草稿" description="创建活动时可以随时保存草稿。" />
+  </view>
 </template>
 
 <script setup lang="ts">
-import FeaturePlaceholder from '../../components/feature-placeholder.vue'
+import { ref } from 'vue'
+import ActivityCard from '../../components/activity-card.vue'
+import EmptyState from '../../components/empty-state.vue'
+import { mockDrafts } from '../../mocks/activities'
+
+const drafts = ref([...mockDrafts])
+
+function continueEdit() {
+  uni.navigateTo({ url: '/subpkg-activity/create/index' })
+}
+
+function removeDraft(id: string) {
+  drafts.value = drafts.value.filter((item) => item.id !== id)
+}
 </script>
+
+<style scoped lang="scss">
+.page {
+  min-height: 100vh;
+  padding: 32rpx 28rpx;
+  background: #f4f7f5;
+}
+
+.header {
+  margin-bottom: 24rpx;
+}
+
+.title,
+.subtitle {
+  display: block;
+}
+
+.title {
+  color: #101828;
+  font-size: 42rpx;
+  font-weight: 900;
+}
+
+.subtitle {
+  margin-top: 8rpx;
+  color: #667085;
+  font-size: 26rpx;
+}
+
+.draft-card {
+  margin-bottom: 24rpx;
+}
+
+.actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.actions button {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 14rpx;
+  background: #ffffff;
+  color: #15803d;
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.actions .danger {
+  color: #c2410c;
+}
+</style>

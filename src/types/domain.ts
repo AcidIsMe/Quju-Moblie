@@ -83,4 +83,47 @@ export interface NotificationItem {
   metadata?: Record<string, unknown>
 }
 
+export interface ActivityTemplate {
+  id: string
+  name: string
+  category: string
+  description: string
+  tags: string[]
+  activity_type: string
+  preset_duration_minutes: number
+  preset_max_participants: number
+}
+
+export interface Friend {
+  id: string
+  nickname: string
+  remark_name?: string
+  avatar_url?: string
+  group_tags: string[]
+}
+
+export interface FriendRequest {
+  id: string
+  nickname: string
+  message: string
+  created_at: string
+}
+
+export interface Team {
+  id: string
+  name: string
+  description: string
+  interest_tags: string[]
+  join_type: 'public' | 'review'
+  current_members: number
+  max_members: number
+}
+
+export interface Review {
+  id: string
+  nickname: string
+  content: string
+  created_at: string
+}
+
 // 分页相关类型已统一迁移至 services/http.ts 的 ApiResponse<T> 和 RequestResult<T>

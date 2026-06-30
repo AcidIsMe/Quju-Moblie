@@ -1,6 +1,7 @@
 <template>
   <view class="activity-card" @tap="openDetail">
     <view class="cover">
+      <text class="cover-mark">趣聚</text>
       <text>{{ activity.activity_type }}</text>
     </view>
     <view class="body">
@@ -43,23 +44,46 @@ function openDetail() {
 .activity-card {
   display: flex;
   gap: 20rpx;
-  padding: 24rpx;
-  border: 1rpx solid #eef0f2;
-  border-radius: 16rpx;
-  background: #ffffff;
+  padding: 22rpx;
+  border: 1rpx solid rgba(22, 163, 74, 0.08);
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16rpx 42rpx rgba(15, 23, 42, 0.06);
 }
 
 .cover {
+  position: relative;
+  overflow: hidden;
   width: 156rpx;
   height: 156rpx;
   display: flex;
+  flex-direction: column;
+  gap: 8rpx;
   align-items: center;
   justify-content: center;
-  border-radius: 12rpx;
-  background: #dcfce7;
-  color: #15803d;
+  border-radius: 16rpx;
+  background: linear-gradient(145deg, #dcfce7 0%, #ccfbf1 100%);
+  color: #047857;
   font-size: 24rpx;
+  font-weight: 800;
   text-align: center;
+}
+
+.cover::after {
+  position: absolute;
+  right: -28rpx;
+  bottom: -30rpx;
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.46);
+  content: '';
+}
+
+.cover-mark {
+  color: rgba(4, 120, 87, 0.44);
+  font-size: 20rpx;
+  font-weight: 900;
 }
 
 .body {
@@ -78,7 +102,7 @@ function openDetail() {
   flex: 1;
   color: #111827;
   font-size: 32rpx;
-  font-weight: 700;
+  font-weight: 850;
   line-height: 1.35;
 }
 
@@ -105,6 +129,6 @@ function openDetail() {
   margin-top: 12rpx;
   color: #15803d;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 750;
 }
 </style>

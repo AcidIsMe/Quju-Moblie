@@ -64,7 +64,7 @@
           <text class="creator-name">{{ activity.creator?.nickname }}</text>
           <text class="creator-label">活动发起人</text>
         </view>
-        <text class="arrow">></text>
+        <uni-icons type="right" size="16" color="#9ca3af" />
       </view>
 
       <!-- 参与要求 -->
@@ -104,6 +104,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import ActivityStatusTag from '../../components/activity-status-tag.vue'
 import TagList from '../../components/tag-list.vue'
 import { getActivityDetail, cancelRegistration } from '../../services/discover'
@@ -135,6 +136,7 @@ const thumbMarker = computed(() => [
     id: 1,
     latitude: activity.value.location_lat,
     longitude: activity.value.location_lng,
+    iconPath: '/static/map-marker.png',
     width: 24,
     height: 24,
   },
@@ -367,10 +369,6 @@ function goToCreator() {
   margin-top: 4rpx;
   color: #667085;
   font-size: 24rpx;
-}
-
-.arrow {
-  color: #9ca3af;
 }
 
 .requirements {
