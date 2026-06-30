@@ -23,7 +23,9 @@ export async function getDiscoverActivities(
   params: DiscoverParams = {},
 ): Promise<RequestResult<Activity[]>> {
   const { cursor, limit = 20, lat, lng } = params
-  const query: Record<string, any> = { cursor, limit }
+  const query: Record<string, any> = {}
+  if (cursor != null) query.cursor = cursor
+  if (limit != null) query.limit = limit
 
   if (tab === 'nearby' && lat != null && lng != null) {
     query.lat = lat

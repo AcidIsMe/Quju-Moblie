@@ -375,6 +375,7 @@ async function submit() {
         location_lat: form.locationLat,
         location_lng: form.locationLng,
         city: form.city || '',
+        status: 'pending_ai_review',
       },
     })
     uni.setStorageSync('activity_draft', null)

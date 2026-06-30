@@ -1,6 +1,6 @@
 {
   "name": "趣聚",
-  "appid": "wx1a3f341110142024",
+  "appid": "wx5796d1140304e815",
   "description": "以兴趣为纽带的线下活动社交平台",
   "versionName": "1.0.0",
   "versionCode": "100",
@@ -46,7 +46,7 @@
   "h5": {},
   "quickapp": {},
   "mp-weixin": {
-    "appid": "wx1a3f341110142024",
+    "appid": "wx5796d1140304e815",
     "setting": {
       "urlCheck": true
     },

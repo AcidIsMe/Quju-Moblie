@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <activity-card v-for="activity in activities" :key="activity.id" :activity="{ ...activity, status: 'pending_manual_review' }" />
+    <activity-card v-for="activity in activities" :key="activity.id" :activity="activity" />
   </view>
 </template>
 
