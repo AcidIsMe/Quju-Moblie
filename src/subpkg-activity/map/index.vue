@@ -35,13 +35,17 @@
         <text>{{ selected.start_time }}</text>
         <text v-if="selected.distance_text">{{ selected.distance_text }}</text>
       </view>
-      <text class="card-action">点击查看详情 ></text>
+      <view class="card-action">
+        <text>查看详情</text>
+        <uni-icons type="right" size="14" color="#15803d" />
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import { mockActivities } from '../../mocks/activities'
 import { useLocationStore } from '../../stores/location'
 import { navigateTo, routes } from '../../utils/routes'
@@ -71,9 +75,12 @@ const markers = computed(() =>
       color: '#101828',
       fontSize: 13,
       borderRadius: 8,
+      borderWidth: 0,
+      borderColor: '#ffffff',
       padding: 8,
-      display: 'BYCLICK',
+      display: 'BYCLICK' as const,
       bgColor: '#ffffff',
+      textAlign: 'center' as const,
     },
   })),
 )
@@ -257,7 +264,10 @@ function openDetail() {
 }
 
 .card-action {
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4rpx;
   color: #15803d;
   font-size: 24rpx;
   font-weight: 700;

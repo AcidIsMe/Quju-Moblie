@@ -4,7 +4,7 @@
       <text class="section-title">基础信息</text>
 
       <!-- 活动名称 -->
-      <input v-model="form.title" class="input" placeholder="活动名称" maxlength="100" />
+      <input v-model="form.title" class="input" placeholder="活动名称" :maxlength="100" />
 
       <!-- 活动类型 -->
       <picker :range="activityTypes" @change="onTypeChange">
@@ -66,13 +66,16 @@
       </picker>
 
       <!-- 城市 -->
-      <input v-model="form.city" class="input" placeholder="活动城市（如：北京）" maxlength="50" />
+      <input v-model="form.city" class="input" placeholder="活动城市（如：北京）" :maxlength="50" />
 
       <!-- 地图选点 -->
       <view class="location-row" @tap="pickLocation">
-        <text v-if="form.locationName" class="location-text">{{ form.locationName }}（已选点）</text>
-        <text v-else class="location-placeholder">点击进行地图选点</text>
-        <text class="arrow">></text>
+        <view class="location-main">
+          <uni-icons type="location-filled" size="20" color="#16a34a" />
+          <text v-if="form.locationName" class="location-text">{{ form.locationName }}（已选点）</text>
+          <text v-else class="location-placeholder">点击进行地图选点</text>
+        </view>
+        <uni-icons type="right" size="16" color="#9ca3af" />
       </view>
     </view>
 
@@ -133,6 +136,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import { navigateTo, routes } from '../../utils/routes'
 
 const activityTypes = ['运动健身', '户外徒步', '桌游聚会', '学习交流', '公益活动', '城市探索', '聚餐美食', '观影娱乐', '其他']
@@ -272,7 +276,9 @@ onShow(() => {
     form.locationName = picked.address || `${picked.latitude.toFixed(5)}, ${picked.longitude.toFixed(5)}`
     if (picked.city) form.city = picked.city
     // 清除，避免重复读取
-    app.globalData.__pickedLocation = null
+    if (app.globalData) {
+      app.globalData.__pickedLocation = null
+    }
   }
 })
 
@@ -535,7 +541,19 @@ function submit() {
   background: #f9fafb;
 }
 
+.location-main {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+
 .location-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: #15803d;
   font-size: 26rpx;
   font-weight: 600;
@@ -544,10 +562,6 @@ function submit() {
 .location-placeholder {
   color: #9ca3af;
   font-size: 26rpx;
-}
-
-.arrow {
-  color: #9ca3af;
 }
 
 .error-msg {

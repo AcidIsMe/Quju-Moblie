@@ -50,6 +50,11 @@
     "setting": {
       "urlCheck": true
     },
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于展示附近活动、地图选点和计算活动距离"
+      }
+    },
     "usingComponents": true
   },
   "mp-alipay": {

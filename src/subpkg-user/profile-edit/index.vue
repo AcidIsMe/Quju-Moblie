@@ -91,7 +91,7 @@ const genderOptions = [
   { label: '保密', value: 'other' },
   { label: '男', value: 'male' },
   { label: '女', value: 'female' },
-]
+] as const
 
 const avatarUrl = ref(user?.avatar_url || '')
 const nickname = ref(user?.nickname || '')
