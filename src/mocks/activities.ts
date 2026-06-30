@@ -34,7 +34,7 @@ export const mockActivities: Activity[] = [
     location_lng: 116.392,
     distance_text: '3.2km',
     status: 'published',
-    creator: { id: 'u_002', nickname: '山野同频' },
+    creator: { id: 'u_002', nickname: '山野同频', avatar_url: '' },
   },
   {
     id: 'a_002',
@@ -57,7 +57,7 @@ export const mockActivities: Activity[] = [
     location_lng: 121.459,
     distance_text: '5.8km',
     status: 'published',
-    creator: { id: 'u_003', nickname: '小桌游局' },
+    creator: { id: 'u_003', nickname: '小桌游局', avatar_url: '' },
   },
   {
     id: 'a_003',
@@ -80,7 +80,7 @@ export const mockActivities: Activity[] = [
     location_lng: 113.24,
     distance_text: '8.1km',
     status: 'published',
-    creator: { id: 'u_004', nickname: '镜头漫游' },
+    creator: { id: 'u_004', nickname: '镜头漫游', avatar_url: '' },
   },
 ]
 
