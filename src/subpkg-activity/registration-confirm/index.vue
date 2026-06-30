@@ -51,25 +51,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getActivityDetail, submitRegistration } from '../../services/discover'
+import { getActivityDetail } from '../../services/discover'
+import { registerActivity } from '../../services/activity'
+import { ApiError } from '../../services/http'
 import { useAuthStore } from '../../stores/auth'
 import type { Activity } from '../../types/domain'
 import { formatFee } from '../../utils/format'
 
 const activity = ref<Activity>({} as Activity)
-const loading = ref(false)
 
-onLoad(async (query) => {
+onLoad((query) => {
   const id = query?.id as string
-  if (!id) return
-  try {
-    loading.value = true
-    const res = await getActivityDetail(id)
-    activity.value = res.data
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
+  if (id) {
+    getActivityDetail(id).then(res => {
+      activity.value = res.data
+    }).catch(() => {
+      uni.showToast({ title: '加载活动详情失败', icon: 'none' })
+    })
   }
 })
 
@@ -165,13 +163,7 @@ async function confirm() {
   errorMsg.value = ''
 
   try {
-    await submitRegistration(activity.value.id, {
-      phone: phone.value || undefined,
-      remark: remark.value || undefined,
-    })
-    activity.value.joined = true
-    activity.value.current_participants = Math.min(activity.value.max_participants, activity.value.current_participants + 1)
-
+    await registerActivity(activity.value.id, { phone: phone.value, remark: remark.value })
     uni.showModal({
       title: '报名成功',
       content: '你可以在「我的 — 我报名的活动」查看状态。',
@@ -180,8 +172,9 @@ async function confirm() {
         uni.navigateBack()
       },
     })
-  } catch (e: any) {
-    errorMsg.value = e.message || '报名失败'
+  } catch (error) {
+    const apiError = error as ApiError
+    errorMsg.value = apiError.message || '报名失败'
     uni.showToast({ title: errorMsg.value, icon: 'none' })
   } finally {
     submitting.value = false

@@ -13,8 +13,8 @@ export function statusText(status: ActivityStatus) {
   return map[status]
 }
 
-export function formatFee(feeType: 'free' | 'paid', amount: number) {
-  if (feeType === 'free' || amount <= 0) return '免费'
+export function formatFee(feeType: 'free' | 'paid' | undefined, amount: number | undefined) {
+  if (feeType === 'free' || !amount || amount <= 0) return '免费'
   return `￥${amount.toFixed(2)}`
 }
 

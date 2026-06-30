@@ -5,25 +5,26 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import ActivityCard from '../../components/activity-card.vue'
-import { getMyJoinedActivities } from '../../services/discover'
+import { getMyJoinedActivities } from '../../services/user'
 import type { Activity } from '../../types/domain'
 
 const activities = ref<Activity[]>([])
 
 onMounted(async () => {
   try {
-    const res = await getMyJoinedActivities()
-    // 后端 /users/me/joined-activities 返回 { registration_id, activity: {...} } 包装
-    activities.value = (res.data || []).map((item: any) => ({
-      ...(item.activity || item),
+    const result = await getMyJoinedActivities()
+    // 后端返回的是包装对象 { registration_id, activity_id, status, activity: {...} }
+    // 需要解包内层 activity 并合并报名信息
+    activities.value = (result.data as any[]).map((item: any) => ({
+      ...(item.activity || {}),
+      id: item.activity?.id || item.activity_id,
+      registration_id: item.registration_id,
       registration_status: item.status,
       joined: true,
-    }))
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
-  }
+    })) as Activity[]
+  } catch { /* silent */ }
 })
 </script>
 

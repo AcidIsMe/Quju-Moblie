@@ -75,10 +75,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { onLoad, onReachBottom } from '@dcloudio/uni-app'
+import { onReachBottom } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
-import { searchActivities, getActivities } from '../../services/discover'
+import { searchActivities, getDiscoverActivities } from '../../services/discover'
 import type { Activity } from '../../types/domain'
 import { navigateTo, routes } from '../../utils/routes'
 
@@ -94,14 +94,11 @@ const loadingMore = ref(false)
 const hasMore = ref(true)
 
 const hotActivities = ref<Activity[]>([])
+const cursor = ref<string | undefined>(undefined)
 
-onLoad(async () => {
-  try {
-    const res = await getActivities('recommended', { limit: 6 })
-    hotActivities.value = res.data
-  } catch {
-    // 静默处理
-  }
+// 加载热门推荐
+getDiscoverActivities('recommended', { limit: 6 }).then(res => {
+  hotActivities.value = res.data
 })
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -137,6 +134,7 @@ async function doSearch(reset = true) {
     searching.value = true
     results.value = []
     hasMore.value = true
+    cursor.value = undefined
   } else {
     if (!hasMore.value || loadingMore.value) return
     loadingMore.value = true
@@ -145,21 +143,25 @@ async function doSearch(reset = true) {
   searched.value = true
 
   try {
-    const res = await searchActivities(q, {
-      cursor: reset ? undefined : String(results.value.length),
-      limit: PAGE_SIZE,
-    })
+    const res = await searchActivities({ q, cursor: cursor.value, limit: PAGE_SIZE })
+
     if (reset) {
       results.value = res.data
+      searching.value = false
     } else {
       results.value = [...results.value, ...res.data]
+      loadingMore.value = false
     }
+
+    cursor.value = res.pagination?.next_cursor
     hasMore.value = res.pagination?.has_more ?? false
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '搜索失败', icon: 'none' })
-  } finally {
-    searching.value = false
-    loadingMore.value = false
+  } catch (_error) {
+    if (reset) {
+      searching.value = false
+    } else {
+      loadingMore.value = false
+    }
+    uni.showToast({ title: '搜索失败，请稍后重试', icon: 'none' })
   }
 }
 

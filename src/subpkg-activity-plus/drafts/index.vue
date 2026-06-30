@@ -21,9 +21,8 @@
 import { ref } from 'vue'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
-import { mockDrafts } from '../../mocks/activities'
 
-const drafts = ref([...mockDrafts])
+const drafts = ref<any[]>([])
 
 function continueEdit() {
   uni.navigateTo({ url: '/subpkg-activity/create/index' })

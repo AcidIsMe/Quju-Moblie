@@ -35,13 +35,17 @@
         <text>{{ selected.start_time }}</text>
         <text v-if="selected.distance_text">{{ selected.distance_text }}</text>
       </view>
-      <text class="card-action">点击查看详情 ></text>
+      <view class="card-action">
+        <text>查看详情</text>
+        <uni-icons type="right" size="14" color="#15803d" />
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import { getMapActivities } from '../../services/discover'
 import { useLocationStore } from '../../stores/location'
 import { navigateTo, routes } from '../../utils/routes'
@@ -72,9 +76,12 @@ const markers = computed(() =>
       color: '#101828',
       fontSize: 13,
       borderRadius: 8,
+      borderWidth: 0,
+      borderColor: '#ffffff',
       padding: 8,
-      display: 'BYCLICK',
+      display: 'BYCLICK' as const,
       bgColor: '#ffffff',
+      textAlign: 'center' as const,
     },
   })),
 )
@@ -95,29 +102,30 @@ function initLocation() {
       locationStore.state.latitude = res.latitude
       locationStore.state.longitude = res.longitude
       loadActivities()
-      if (!loaded.value) {
-        loaded.value = true
-        fitAllMarkers()
-      }
     },
     fail() {
       locationAuthorized.value = false
       loadActivities()
-      fitAllMarkers()
     },
   })
 }
 
 async function loadActivities() {
   try {
-    const sw_lat = centerLat.value - 0.5
-    const sw_lng = centerLng.value - 0.5
-    const ne_lat = centerLat.value + 0.5
-    const ne_lng = centerLng.value + 0.5
-    const res = await getMapActivities({ sw_lat, sw_lng, ne_lat, ne_lng })
-    activities.value = res.data
+    const offset = 0.3
+    const result = await getMapActivities(
+      centerLat.value - offset,
+      centerLng.value - offset,
+      centerLat.value + offset,
+      centerLng.value + offset,
+    )
+    activities.value = result.data
+    if (!loaded.value) {
+      loaded.value = true
+      fitAllMarkers()
+    }
   } catch {
-    // 静默处理
+    // silent
   }
 }
 
@@ -162,16 +170,26 @@ function onMarkerTap(event: { detail: { markerId: number } }) {
 
 // ---- 视野变化 ----
 let regionTimer: ReturnType<typeof setTimeout> | null = null
-function onRegionChange(e: any) {
-  if (e.type === 'end') {
-    if (regionTimer) clearTimeout(regionTimer)
-    regionTimer = setTimeout(() => {
-      const { southwest, northeast } = e.detail
-      if (southwest && northeast) {
-        loadActivities()
-      }
-    }, 500)
-  }
+function onRegionChange(_e: any) {
+  if (regionTimer) clearTimeout(regionTimer)
+  regionTimer = setTimeout(async () => {
+    try {
+      const mapCtx = uni.createMapContext('discoverMap')
+      mapCtx.getRegion({
+        success: async (res) => {
+          const result = await getMapActivities(
+            res.southwest.latitude,
+            res.southwest.longitude,
+            res.northeast.latitude,
+            res.northeast.longitude,
+          )
+          activities.value = result.data
+        },
+      })
+    } catch {
+      // silent
+    }
+  }, 500)
 }
 
 // ---- 跳转详情 ----
@@ -275,7 +293,10 @@ function openDetail() {
 }
 
 .card-action {
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4rpx;
   color: #15803d;
   font-size: 24rpx;
   font-weight: 700;

@@ -17,15 +17,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import TagList from '../../components/tag-list.vue'
-import { mockTeams } from '../../mocks/activities'
+import { getTeams } from '../../services/team'
 import { navigateTo, routes } from '../../utils/routes'
+import type { Team } from '../../types/domain'
 
 const keyword = ref('')
+const teams = ref<Team[]>([])
+
+onMounted(async () => {
+  try {
+    const result = await getTeams()
+    teams.value = result.data
+  } catch { /* silent */ }
+})
+
 const filteredTeams = computed(() => {
-  if (!keyword.value.trim()) return mockTeams
-  return mockTeams.filter((team) => team.name.includes(keyword.value) || team.interest_tags.some((tag) => tag.includes(keyword.value)))
+  if (!keyword.value.trim()) return teams.value
+  return teams.value.filter(
+    (team) =>
+      team.name.includes(keyword.value) ||
+      team.interest_tags.some((tag) => tag.includes(keyword.value)),
+  )
 })
 </script>
 

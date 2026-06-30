@@ -26,13 +26,23 @@ export class ApiError extends Error {
   }
 }
 
-export function request<T>(options: UniApp.RequestOptions): Promise<RequestResult<T>> {
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS'
+
+interface RequestOptions {
+  url: string
+  method?: HttpMethod
+  data?: any
+  header?: Record<string, string>
+}
+
+export function request<T>(options: RequestOptions): Promise<RequestResult<T>> {
   const token = uni.getStorageSync('access_token')
 
   return new Promise((resolve, reject) => {
     uni.request({
-      ...options,
       url: `${BASE_URL}${options.url}`,
+      method: options.method as any,
+      data: options.data,
       header: {
         ...(options.header || {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

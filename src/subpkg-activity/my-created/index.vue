@@ -5,20 +5,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import ActivityCard from '../../components/activity-card.vue'
-import { getMyCreatedActivities } from '../../services/discover'
+import { getMyCreatedActivities } from '../../services/user'
 import type { Activity } from '../../types/domain'
 
 const activities = ref<Activity[]>([])
 
 onMounted(async () => {
   try {
-    const res = await getMyCreatedActivities()
-    activities.value = res.data
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
-  }
+    const result = await getMyCreatedActivities()
+    activities.value = result.data
+  } catch { /* silent */ }
 })
 </script>
 

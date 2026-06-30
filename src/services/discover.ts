@@ -1,105 +1,92 @@
-import { request } from './http'
+import { request, type RequestResult } from './http'
 import type { Activity } from '../types/domain'
 
 export type DiscoverTab = 'recommended' | 'latest' | 'nearby'
 
-/** 过滤 undefined 值，避免 uni-app 序列化为 "undefined" 字符串导致非法 URL */
-function cleanParams(params: Record<string, any>): Record<string, any> {
-  const cleaned: Record<string, any> = {}
-  for (const key of Object.keys(params)) {
-    if (params[key] !== undefined && params[key] !== null) {
-      cleaned[key] = params[key]
-    }
-  }
-  return cleaned
-}
-
-export function getActivities(tab: DiscoverTab, params?: { cursor?: string; limit?: number }) {
-  const endpoint = tab === 'latest' ? '/discover/latest'
-    : tab === 'nearby' ? '/discover/nearby'
-    : '/discover/recommended'
-  return request<Activity[]>({
-    url: endpoint,
-    method: 'GET',
-    data: cleanParams({ cursor: params?.cursor, limit: params?.limit || 20 }),
-  })
-}
-
-export function getActivityDetail(id: string) {
-  return request<Activity>({
-    url: `/activities/${id}`,
-    method: 'GET',
-  })
-}
-
-export function searchActivities(q: string, params?: { cursor?: string; limit?: number }) {
-  return request<Activity[]>({
-    url: '/discover/search',
-    method: 'GET',
-    data: cleanParams({ q, cursor: params?.cursor, limit: params?.limit || 20 }),
-  })
-}
-
-export function getNearbyActivities(params?: {
+interface DiscoverParams {
+  cursor?: string
+  limit?: number
   lat?: number
   lng?: number
   radius?: number
-  cursor?: string
-  limit?: number
-}) {
+  q?: string
+  city?: string
+  type?: string
+  activityTypes?: string
+  feeType?: string
+  startAfter?: string
+  startBefore?: string
+}
+
+export async function getDiscoverActivities(
+  tab: DiscoverTab,
+  params: DiscoverParams = {},
+): Promise<RequestResult<Activity[]>> {
+  const { cursor, limit = 20, lat, lng } = params
+  const query: Record<string, any> = { cursor, limit }
+
+  if (tab === 'nearby' && lat != null && lng != null) {
+    query.lat = lat
+    query.lng = lng
+    query.radius = params.radius || 10000
+  }
+  if (params.q) query.q = params.q
+  if (params.city) query.city = params.city
+  if (params.type) query.type = params.type
+  if (params.feeType) query.feeType = params.feeType
+  if (params.startAfter) query.startAfter = params.startAfter
+  if (params.startBefore) query.startBefore = params.startBefore
+
+  const urlMap: Record<DiscoverTab, string> = {
+    recommended: '/discover/recommended',
+    latest: '/discover/latest',
+    nearby: '/discover/nearby',
+  }
+
   return request<Activity[]>({
-    url: '/discover/nearby',
+    url: urlMap[tab],
     method: 'GET',
-    data: cleanParams({
-      lat: params?.lat,
-      lng: params?.lng,
-      radius: params?.radius,
-      cursor: params?.cursor,
-      limit: params?.limit || 20,
-    }),
+    data: query,
   })
 }
 
-export function getMapActivities(params: {
-  sw_lat: number
-  sw_lng: number
-  ne_lat: number
-  ne_lng: number
-}) {
+/** GET /api/discover/search — 搜索/筛选活动 */
+export async function searchActivities(params: DiscoverParams): Promise<RequestResult<Activity[]>> {
+  const query: Record<string, any> = {}
+  if (params.cursor) query.cursor = params.cursor
+  if (params.limit) query.limit = params.limit
+  if (params.q) query.q = params.q
+  if (params.city) query.city = params.city
+  if (params.type) query.type = params.type
+  if (params.feeType) query.feeType = params.feeType
+  if (params.startAfter) query.startAfter = params.startAfter
+  if (params.startBefore) query.startBefore = params.startBefore
+
+  return request<Activity[]>({
+    url: '/discover/filter',
+    method: 'GET',
+    data: query,
+  })
+}
+
+/** GET /api/discover/map — 地图范围查询 */
+export async function getMapActivities(
+  swLat: number,
+  swLng: number,
+  neLat: number,
+  neLng: number,
+): Promise<RequestResult<Activity[]>> {
   return request<Activity[]>({
     url: '/discover/map',
     method: 'GET',
-    data: params,
+    data: { swLat, swLng, neLat, neLng },
   })
 }
 
-export function submitRegistration(activityId: string, data?: { phone?: string; remark?: string }) {
-  return request<void>({
-    url: `/activities/${activityId}/register`,
-    method: 'POST',
-    data,
-  })
-}
-
-export function cancelRegistration(activityId: string) {
-  return request<void>({
-    url: `/activities/${activityId}/cancel-registration`,
-    method: 'POST',
-  })
-}
-
-export function getMyCreatedActivities(params?: { cursor?: string; limit?: number }) {
-  return request<Activity[]>({
-    url: '/users/me/created-activities',
+/** GET /api/activities/:id — 获取活动详情 */
+export async function getActivityDetail(id: string): Promise<RequestResult<Activity>> {
+  return request<Activity>({
+    url: `/activities/${id}`,
     method: 'GET',
-    data: cleanParams({ cursor: params?.cursor, limit: params?.limit || 20 }),
-  })
-}
-
-export function getMyJoinedActivities(params?: { cursor?: string; limit?: number }) {
-  return request<Activity[]>({
-    url: '/users/me/joined-activities',
-    method: 'GET',
-    data: cleanParams({ cursor: params?.cursor, limit: params?.limit || 20 }),
   })
 }

@@ -16,15 +16,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import TagList from '../../components/tag-list.vue'
-import { mockFriends } from '../../mocks/activities'
+import { getFriends, deleteFriend } from '../../services/user'
 import { navigateTo, routes } from '../../utils/routes'
 
-const friends = ref([...mockFriends])
+const friends = ref<any[]>([])
 
-function remove(id: string) {
-  friends.value = friends.value.filter((item) => item.id !== id)
+onMounted(async () => {
+  try {
+    const result = await getFriends()
+    friends.value = result.data
+  } catch { /* silent */ }
+})
+
+async function remove(id: string) {
+  try {
+    await deleteFriend(id)
+    friends.value = friends.value.filter((item) => item.id !== id)
+  } catch {
+    uni.showToast({ title: '删除失败', icon: 'none' })
+  }
 }
 </script>
 
