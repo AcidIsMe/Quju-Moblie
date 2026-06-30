@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { mockRegister } from '../../services/auth'
+import { register } from '../../services/auth'
 import { ApiError } from '../../services/http'
 
 const nickname = ref('')
@@ -115,7 +115,7 @@ async function submit() {
   if (hasError()) return
   try {
     loading.value = true
-    await mockRegister(email.value, password.value, nickname.value.trim())
+    await register(email.value, password.value, nickname.value.trim())
     uni.showModal({
       title: '注册成功',
       content: '请前往邮箱完成账号激活，然后返回登录。',

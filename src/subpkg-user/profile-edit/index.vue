@@ -81,6 +81,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { request } from '../../services/http'
 
 const auth = useAuthStore()
 auth.restore()
@@ -169,19 +170,23 @@ async function save() {
 
   try {
     saving.value = true
+    const payload = {
+      nickname: nickname.value.trim(),
+      avatar_url: avatarUrl.value,
+      gender: gender.value,
+      birthday: birthday.value,
+      bio: bio.value.slice(0, 200),
+      interest_tags: tags.value,
+    }
+    await request({ url: '/users/me', method: 'PUT', data: payload })
     if (auth.state.user) {
-      auth.state.user.nickname = nickname.value.trim()
-      auth.state.user.avatar_url = avatarUrl.value
-      auth.state.user.gender = gender.value
-      auth.state.user.birthday = birthday.value
-      auth.state.user.bio = bio.value.slice(0, 200)
-      auth.state.user.interest_tags = tags.value
+      Object.assign(auth.state.user, payload)
       uni.setStorageSync('current_user', auth.state.user)
     }
     uni.showToast({ title: '已保存', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 800)
-  } catch (error) {
-    uni.showToast({ title: '保存失败', icon: 'none' })
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '保存失败', icon: 'none' })
   } finally {
     saving.value = false
   }

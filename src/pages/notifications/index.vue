@@ -9,9 +9,20 @@
 </template>
 
 <script setup lang="ts">
-import { mockNotifications } from '../../mocks/activities'
+import { onMounted, ref } from 'vue'
+import { request } from '../../services/http'
+import type { NotificationItem } from '../../types/domain'
 
-const notifications = mockNotifications
+const notifications = ref<NotificationItem[]>([])
+
+onMounted(async () => {
+  try {
+    const res = await request<NotificationItem[]>({ url: '/notifications', method: 'GET' })
+    notifications.value = res.data
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '加载通知失败', icon: 'none' })
+  }
+})
 </script>
 
 <style scoped lang="scss">

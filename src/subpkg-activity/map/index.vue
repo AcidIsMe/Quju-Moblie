@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { mockActivities } from '../../mocks/activities'
+import { getMapActivities } from '../../services/discover'
 import { useLocationStore } from '../../stores/location'
 import { navigateTo, routes } from '../../utils/routes'
 import type { Activity } from '../../types/domain'
@@ -55,10 +55,11 @@ const scale = ref(12)
 const locationAuthorized = ref(false)
 const selected = ref<Activity | null>(null)
 const loaded = ref(false)
+const activities = ref<Activity[]>([])
 
 // markers 计算
 const markers = computed(() =>
-  mockActivities.map((item, index) => ({
+  activities.value.map((item, index) => ({
     id: index,
     latitude: item.location_lat,
     longitude: item.location_lng,
@@ -93,6 +94,7 @@ function initLocation() {
       locationStore.state.authorized = true
       locationStore.state.latitude = res.latitude
       locationStore.state.longitude = res.longitude
+      loadActivities()
       if (!loaded.value) {
         loaded.value = true
         fitAllMarkers()
@@ -100,9 +102,23 @@ function initLocation() {
     },
     fail() {
       locationAuthorized.value = false
+      loadActivities()
       fitAllMarkers()
     },
   })
+}
+
+async function loadActivities() {
+  try {
+    const sw_lat = centerLat.value - 0.5
+    const sw_lng = centerLng.value - 0.5
+    const ne_lat = centerLat.value + 0.5
+    const ne_lng = centerLng.value + 0.5
+    const res = await getMapActivities({ sw_lat, sw_lng, ne_lat, ne_lng })
+    activities.value = res.data
+  } catch {
+    // 静默处理
+  }
 }
 
 function requestLocation() {
@@ -125,7 +141,7 @@ function moveToCurrent() {
 
 // ---- 自动缩放适配所有点位 ----
 function fitAllMarkers() {
-  const points = mockActivities.map(item => ({
+  const points = activities.value.map(item => ({
     latitude: item.location_lat,
     longitude: item.location_lng,
   }))
@@ -141,19 +157,21 @@ function fitAllMarkers() {
 
 // ---- Marker 点击 ----
 function onMarkerTap(event: { detail: { markerId: number } }) {
-  selected.value = mockActivities[event.detail.markerId] || null
+  selected.value = activities.value[event.detail.markerId] || null
 }
 
 // ---- 视野变化 ----
 let regionTimer: ReturnType<typeof setTimeout> | null = null
-function onRegionChange(_e: any) {
-  // 视野变化后可以按新范围重新请求点位
-  // 当前使用 Mock 数据，暂不重新请求
-  // 对接真实 API 后调用 GET /api/discover/map?sw_lat=&sw_lng=&ne_lat=&ne_lng=
-  if (regionTimer) clearTimeout(regionTimer)
-  regionTimer = setTimeout(() => {
-    // 预留：按视野范围重新加载 markers
-  }, 500)
+function onRegionChange(e: any) {
+  if (e.type === 'end') {
+    if (regionTimer) clearTimeout(regionTimer)
+    regionTimer = setTimeout(() => {
+      const { southwest, northeast } = e.detail
+      if (southwest && northeast) {
+        loadActivities()
+      }
+    }, 500)
+  }
 }
 
 // ---- 跳转详情 ----

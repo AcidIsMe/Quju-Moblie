@@ -14,7 +14,7 @@ export interface RequestResult<T> {
   pagination?: ApiResponse<T>['pagination']
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api'
 
 /** 请求失败时抛出的错误，包含业务错误码和消息 */
 export class ApiError extends Error {

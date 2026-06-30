@@ -66,7 +66,7 @@ import { ref } from 'vue'
 import { onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
-import { getMockActivities, type DiscoverTab } from '../../services/discover'
+import { getActivities, type DiscoverTab } from '../../services/discover'
 import { useAuthStore } from '../../stores/auth'
 import { useLocationStore } from '../../stores/location'
 import { navigateTo, routes } from '../../utils/routes'
@@ -77,8 +77,6 @@ const tabs: { label: string; value: DiscoverTab }[] = [
   { label: '最新', value: 'latest' },
   { label: '附近', value: 'nearby' },
 ]
-
-const PAGE_SIZE = 20
 
 const currentTab = ref<DiscoverTab>('recommended')
 const activities = ref<Activity[]>([])
@@ -92,7 +90,6 @@ const locationStore = useLocationStore()
 
 const cityText = ref('为你推荐附近活动')
 
-// ---- 首屏加载 + Tab 切换 ----
 async function fetchData(reset: boolean) {
   if (reset) {
     cursor.value = undefined
@@ -104,22 +101,24 @@ async function fetchData(reset: boolean) {
     loadingMore.value = true
   }
 
-  // 模拟网络延迟
-  await delay(400)
-
-  const all = getMockActivities(currentTab.value)
-  const start = reset ? 0 : activities.value.length
-  const page = all.slice(start, start + PAGE_SIZE)
-
-  if (reset) {
-    activities.value = page
-    loading.value = false
-  } else {
-    activities.value = [...activities.value, ...page]
-    loadingMore.value = false
+  try {
+    const res = await getActivities(currentTab.value, {
+      cursor: reset ? undefined : cursor.value,
+      limit: 20,
+    })
+    if (reset) {
+      activities.value = res.data
+      loading.value = false
+    } else {
+      activities.value = [...activities.value, ...res.data]
+      loadingMore.value = false
+    }
+    hasMore.value = res.pagination?.has_more || false
+    cursor.value = res.pagination?.next_cursor || undefined
+  } catch {
+    if (reset) loading.value = false
+    else loadingMore.value = false
   }
-
-  hasMore.value = activities.value.length < all.length
 
   if (reset) {
     uni.stopPullDownRefresh()
@@ -184,10 +183,6 @@ onPullDownRefresh(() => {
 onReachBottom(() => {
   fetchData(false)
 })
-
-function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 </script>
 
 <style scoped lang="scss">

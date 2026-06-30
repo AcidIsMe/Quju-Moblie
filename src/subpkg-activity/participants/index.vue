@@ -11,11 +11,37 @@
 </template>
 
 <script setup lang="ts">
-const participants = [
-  { name: '李四', checked: true },
-  { name: '王五', checked: false },
-  { name: '赵六', checked: true },
-]
+import { ref, onMounted } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { request } from '../../../services/http'
+
+interface Participant {
+  name: string
+  checked: boolean
+}
+
+const participants = ref<Participant[]>([])
+const activityId = ref('')
+
+onLoad((options: any) => {
+  activityId.value = options?.id || ''
+})
+
+onMounted(async () => {
+  if (!activityId.value) return
+  try {
+    const res = await request<any[]>({
+      url: `/activities/${activityId.value}/participants`,
+      method: 'GET',
+    })
+    participants.value = (res.data || []).map((item: any) => ({
+      name: item.user?.nickname || item.user_id || '未知用户',
+      checked: !!item.checked_in_at,
+    }))
+  } catch {
+    uni.showToast({ title: '加载失败', icon: 'none' })
+  }
+})
 </script>
 
 <style scoped lang="scss">

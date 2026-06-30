@@ -5,10 +5,21 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import ActivityCard from '../../components/activity-card.vue'
-import { mockActivities } from '../../mocks/activities'
+import { getMyJoinedActivities } from '../../services/discover'
+import type { Activity } from '../../types/domain'
 
-const activities = mockActivities.slice(0, 2)
+const activities = ref<Activity[]>([])
+
+onMounted(async () => {
+  try {
+    const res = await getMyJoinedActivities()
+    activities.value = res.data
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+  }
+})
 </script>
 
 <style scoped lang="scss">

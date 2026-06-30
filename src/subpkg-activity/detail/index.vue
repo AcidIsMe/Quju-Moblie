@@ -106,15 +106,26 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import ActivityStatusTag from '../../components/activity-status-tag.vue'
 import TagList from '../../components/tag-list.vue'
-import { findMockActivity } from '../../services/discover'
+import { getActivityDetail, cancelRegistration } from '../../services/discover'
 import type { Activity } from '../../types/domain'
 import { formatCapacity, formatFee } from '../../utils/format'
 import { navigateTo, routes } from '../../utils/routes'
 
-const activity = ref<Activity>(findMockActivity())
+const activity = ref<Activity>({} as Activity)
+const loading = ref(false)
 
-onLoad((query) => {
-  activity.value = findMockActivity(query?.id as string)
+onLoad(async (query) => {
+  const id = query?.id as string
+  if (!id) return
+  try {
+    loading.value = true
+    const res = await getActivityDetail(id)
+    activity.value = res.data
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
 })
 
 const creatorInitial = computed(() => activity.value.creator?.nickname?.slice(0, 1) || '?')
@@ -161,17 +172,22 @@ const btnState = computed<BtnState>(() => {
 })
 
 // ---- 操作 ----
-function cancelJoin() {
+async function cancelJoin() {
   uni.showModal({
     title: '确定取消报名？',
     content: '取消后名额将释放给他人。',
     confirmText: '确定取消',
     cancelText: '暂不取消',
-    success(res) {
+    success: async (res) => {
       if (res.confirm) {
-        activity.value.joined = false
-        activity.value.current_participants = Math.max(0, activity.value.current_participants - 1)
-        uni.showToast({ title: '已取消报名', icon: 'success' })
+        try {
+          await cancelRegistration(activity.value.id)
+          activity.value.joined = false
+          activity.value.current_participants = Math.max(0, activity.value.current_participants - 1)
+          uni.showToast({ title: '已取消报名', icon: 'success' })
+        } catch (e: any) {
+          uni.showToast({ title: e.message || '取消失败', icon: 'none' })
+        }
       }
     },
   })

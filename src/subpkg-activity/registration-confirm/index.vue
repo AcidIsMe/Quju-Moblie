@@ -51,15 +51,26 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { findMockActivity } from '../../services/discover'
+import { getActivityDetail, submitRegistration } from '../../services/discover'
 import { useAuthStore } from '../../stores/auth'
 import type { Activity } from '../../types/domain'
 import { formatFee } from '../../utils/format'
 
-const activity = ref<Activity>(findMockActivity())
+const activity = ref<Activity>({} as Activity)
+const loading = ref(false)
 
-onLoad((query) => {
-  activity.value = findMockActivity(query?.id as string)
+onLoad(async (query) => {
+  const id = query?.id as string
+  if (!id) return
+  try {
+    loading.value = true
+    const res = await getActivityDetail(id)
+    activity.value = res.data
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
 })
 
 const auth = useAuthStore()
@@ -140,7 +151,7 @@ function calcAge(birthday: string): number {
 }
 
 // ---- 提交 ----
-function confirm() {
+async function confirm() {
   if (!canSubmit.value) {
     const fail = checks.value.find(c => !c.pass)
     if (fail) {
@@ -153,24 +164,28 @@ function confirm() {
   submitting.value = true
   errorMsg.value = ''
 
-  // 模拟提交
-  setTimeout(() => {
-    submitting.value = false
-    const a = activity.value
-    a.joined = true
-    a.current_participants = Math.min(a.max_participants, a.current_participants + 1)
+  try {
+    await submitRegistration(activity.value.id, {
+      phone: phone.value || undefined,
+      remark: remark.value || undefined,
+    })
+    activity.value.joined = true
+    activity.value.current_participants = Math.min(activity.value.max_participants, activity.value.current_participants + 1)
 
-    // 回传状态给详情页
     uni.showModal({
       title: '报名成功',
       content: '你可以在「我的 — 我报名的活动」查看状态。',
       showCancel: false,
       success() {
-        // 回退到详情页，detail 页 onShow 会刷新
         uni.navigateBack()
       },
     })
-  }, 600)
+  } catch (e: any) {
+    errorMsg.value = e.message || '报名失败'
+    uni.showToast({ title: errorMsg.value, icon: 'none' })
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 

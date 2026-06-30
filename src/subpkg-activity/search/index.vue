@@ -75,10 +75,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { onReachBottom } from '@dcloudio/uni-app'
+import { onLoad, onReachBottom } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
-import { mockActivities } from '../../mocks/activities'
+import { searchActivities, getActivities } from '../../services/discover'
 import type { Activity } from '../../types/domain'
 import { navigateTo, routes } from '../../utils/routes'
 
@@ -93,7 +93,16 @@ const results = ref<Activity[]>([])
 const loadingMore = ref(false)
 const hasMore = ref(true)
 
-const hotActivities = ref<Activity[]>(mockActivities.slice(0, 6))
+const hotActivities = ref<Activity[]>([])
+
+onLoad(async () => {
+  try {
+    const res = await getActivities('recommended', { limit: 6 })
+    hotActivities.value = res.data
+  } catch {
+    // 静默处理
+  }
+})
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -135,28 +144,23 @@ async function doSearch(reset = true) {
 
   searched.value = true
 
-  // 模拟网络延迟
-  await delay(300)
-
-  const filtered = mockActivities.filter(
-    item =>
-      item.title.includes(q) ||
-      item.description.includes(q) ||
-      item.tags.some(tag => tag.includes(q))
-  )
-
-  const start = reset ? 0 : results.value.length
-  const page = filtered.slice(start, start + PAGE_SIZE)
-
-  if (reset) {
-    results.value = page
+  try {
+    const res = await searchActivities(q, {
+      cursor: reset ? undefined : String(results.value.length),
+      limit: PAGE_SIZE,
+    })
+    if (reset) {
+      results.value = res.data
+    } else {
+      results.value = [...results.value, ...res.data]
+    }
+    hasMore.value = res.pagination?.has_more ?? false
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '搜索失败', icon: 'none' })
+  } finally {
     searching.value = false
-  } else {
-    results.value = [...results.value, ...page]
     loadingMore.value = false
   }
-
-  hasMore.value = results.value.length < filtered.length
 }
 
 function showFilter() {
@@ -169,10 +173,6 @@ onReachBottom(() => {
     doSearch(false)
   }
 })
-
-function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 </script>
 
 <style scoped lang="scss">

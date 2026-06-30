@@ -134,6 +134,7 @@
 import { reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { navigateTo, routes } from '../../utils/routes'
+import { request } from '../../services/http'
 
 const activityTypes = ['运动健身', '户外徒步', '桌游聚会', '学习交流', '公益活动', '城市探索', '聚餐美食', '观影娱乐', '其他']
 
@@ -307,29 +308,42 @@ function saveDraft() {
   setTimeout(() => uni.navigateBack(), 800)
 }
 
-function submit() {
+async function submit() {
   if (!validate()) {
     uni.showToast({ title: errors.value, icon: 'none' })
     return
   }
   submitting.value = true
-  uni.showModal({
-    title: '确认提交',
-    content: '提交后活动将进入审核流程。',
-    confirmText: '提交',
-    success(res) {
-      if (res.confirm) {
-        uni.setStorageSync('activity_draft', null)
-        uni.showModal({
-          title: '已提交',
-          content: '活动已进入审核流程。',
-          showCancel: false,
-          success: () => uni.navigateBack(),
-        })
-      }
-    },
-    complete: () => { submitting.value = false },
-  })
+  try {
+    await request({
+      url: '/activities',
+      method: 'POST',
+      data: {
+        title: form.title,
+        description: form.description,
+        tags: form.tags ? form.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+        activity_type: form.activityType,
+        start_time: form.startTime,
+        end_time: form.endTime,
+        registration_deadline: form.registrationDeadline,
+        max_participants: form.maxParticipants,
+        min_credit_score: form.minCreditScore,
+        fee_type: form.feeType,
+        fee_amount: form.feeType === 'paid' ? form.feeAmount : 0,
+        location_name: form.locationName,
+        location_lat: form.locationLat,
+        location_lng: form.locationLng,
+        city: form.city || '',
+      },
+    })
+    uni.setStorageSync('activity_draft', null)
+    uni.showToast({ title: '提交成功，等待审核', icon: 'success' })
+    setTimeout(() => uni.navigateBack(), 1000)
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '提交失败', icon: 'none' })
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
