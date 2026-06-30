@@ -15,7 +15,12 @@ const activities = ref<Activity[]>([])
 onMounted(async () => {
   try {
     const res = await getMyJoinedActivities()
-    activities.value = res.data
+    // 后端 /users/me/joined-activities 返回 { registration_id, activity: {...} } 包装
+    activities.value = (res.data || []).map((item: any) => ({
+      ...(item.activity || item),
+      registration_status: item.status,
+      joined: true,
+    }))
   } catch (e: any) {
     uni.showToast({ title: e.message || '加载失败', icon: 'none' })
   }

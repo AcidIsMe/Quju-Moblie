@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { request } from '../../../services/http'
+import { request } from '../../services/http'
 
 interface Participant {
   name: string

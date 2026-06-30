@@ -45,23 +45,23 @@
       <text class="section-title">时间地点</text>
 
       <!-- 开始时间 -->
-      <picker mode="multiSelector" :range="startTimeRanges" :value="startTimeValues" @change="onStartTimeChange" @columnchange="onStartColumnChange">
+      <picker mode="multiSelector" :range="startPicker.ranges" :value="startPicker.indices" @change="startPicker.onChange" @columnchange="startPicker.onColumnChange">
         <view class="picker-field">
-          <text :class="{ placeholder: !form.startTime }">{{ form.startTime || '选择开始时间' }}</text>
+          <text :class="{ placeholder: !startPicker.text.value }">{{ startPicker.text.value || '选择开始时间' }}</text>
         </view>
       </picker>
 
       <!-- 结束时间 -->
-      <picker mode="multiSelector" :range="endTimeRanges" :value="endTimeValues" @change="onEndTimeChange" @columnchange="onEndColumnChange">
+      <picker mode="multiSelector" :range="endPicker.ranges" :value="endPicker.indices" @change="endPicker.onChange" @columnchange="endPicker.onColumnChange">
         <view class="picker-field">
-          <text :class="{ placeholder: !form.endTime }">{{ form.endTime || '选择结束时间' }}</text>
+          <text :class="{ placeholder: !endPicker.text.value }">{{ endPicker.text.value || '选择结束时间' }}</text>
         </view>
       </picker>
 
       <!-- 报名截止时间 -->
-      <picker mode="multiSelector" :range="deadlineRanges" :value="deadlineValues" @change="onDeadlineChange" @columnchange="onDeadlineColumnChange">
+      <picker mode="multiSelector" :range="deadlinePicker.ranges" :value="deadlinePicker.indices" @change="deadlinePicker.onChange" @columnchange="deadlinePicker.onColumnChange">
         <view class="picker-field">
-          <text :class="{ placeholder: !form.registrationDeadline }">{{ form.registrationDeadline || '选择报名截止时间' }}</text>
+          <text :class="{ placeholder: !deadlinePicker.text.value }">{{ deadlinePicker.text.value || '选择报名截止时间' }}</text>
         </view>
       </picker>
 
@@ -148,9 +148,6 @@ const form = reactive({
   coverImageUrl: '',
   tags: [] as string[],
   description: '',
-  startTime: '',
-  endTime: '',
-  registrationDeadline: '',
   city: '',
   locationName: '',
   locationLat: 0,
@@ -169,62 +166,90 @@ const submitting = ref(false)
 
 // ---- 时间选择器 ----
 const now = new Date()
-const years: number[] = []
-const months: number[] = []
-const days: number[] = []
-const hours: number[] = []
-for (let y = now.getFullYear(); y <= now.getFullYear() + 1; y++) years.push(y)
-for (let m = 1; m <= 12; m++) months.push(m)
-for (let d = 1; d <= 31; d++) days.push(d)
-for (let h = 0; h <= 23; h++) hours.push(h)
+const YEAR_LIST: number[] = []
+for (let y = now.getFullYear(); y <= now.getFullYear() + 1; y++) YEAR_LIST.push(y)
+const MONTH_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+const HOUR_LIST: number[] = []
+for (let h = 0; h <= 23; h++) HOUR_LIST.push(h)
+const MINUTE_LIST = [0, 30]
 
-const baseTimeRanges = [years, months, days, hours, [0, 30]]
-const baseTimeValues = [0, now.getMonth(), now.getDate() - 1, now.getHours(), 0]
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate()
+}
 
-const startTimeRanges = ref([...baseTimeRanges.map(a => [...a])])
-const startTimeValues = ref([...baseTimeValues])
-const endTimeRanges = ref([...baseTimeRanges.map(a => [...a])])
-const endTimeValues = ref([...baseTimeValues])
-const deadlineRanges = ref([...baseTimeRanges.map(a => [...a])])
-const deadlineValues = ref([...baseTimeValues])
+function makeDayList(yearIdx: number, monthIdx: number) {
+  const max = daysInMonth(YEAR_LIST[yearIdx], MONTH_LIST[monthIdx])
+  const list: number[] = []
+  for (let d = 1; d <= max; d++) list.push(d)
+  return list
+}
 
 function formatTime(y: number, m: number, d: number, h: number, min: number) {
-  const mm = String(m + 1).padStart(2, '0')
-  const dd = String(d + 1).padStart(2, '0')
-  const hh = String(h).padStart(2, '0')
-  const mmm = String(min === 1 ? 30 : 0).padStart(2, '0')
-  return `${y}-${mm}-${dd} ${hh}:${mmm}`
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`
 }
 
-function onStartTimeChange(e: any) {
-  const [y, m, d, h, min] = e.detail.value
-  startTimeValues.value = e.detail.value
-  form.startTime = formatTime(y, m, d, h, min)
-}
-function onStartColumnChange(e: any) {
-  startTimeRanges.value[e.detail.column] = [...baseTimeRanges[e.detail.column]]
-  startTimeValues.value[e.detail.column] = e.detail.value
+// ---- 创建单个时间选择器 ----
+function createTimePicker() {
+  const initYearIdx = 0
+  const initMonthIdx = now.getMonth()
+  const initDayIdx = Math.min(now.getDate() - 1, daysInMonth(YEAR_LIST[0], MONTH_LIST[initMonthIdx]) - 1)
+  const initHourIdx = now.getHours()
+  const initMinIdx = 0
+
+  const ranges = ref<number[][]>([
+    YEAR_LIST,
+    MONTH_LIST,
+    makeDayList(initYearIdx, initMonthIdx),
+    HOUR_LIST,
+    MINUTE_LIST,
+  ])
+  const indices = ref<number[]>([initYearIdx, initMonthIdx, initDayIdx, initHourIdx, initMinIdx])
+  const text = ref('')
+
+  function updateText() {
+    const [yi, mi, di, hi, mini] = indices.value
+    text.value = formatTime(
+      YEAR_LIST[yi],
+      MONTH_LIST[mi],
+      ranges.value[2][di] ?? 1,
+      HOUR_LIST[hi],
+      MINUTE_LIST[mini],
+    )
+  }
+
+  function onColumnChange(e: any) {
+    const col = e.detail.column as number
+    const newIdx = e.detail.value as number
+    indices.value[col] = newIdx
+
+    // 年或月变了 → 重建日列表
+    if (col === 0 || col === 1) {
+      const yi = indices.value[0]
+      const mi = indices.value[1]
+      ranges.value[2] = makeDayList(yi, mi)
+      // 日索引可能越界，修正到最后一号
+      if (indices.value[2] >= ranges.value[2].length) {
+        indices.value[2] = ranges.value[2].length - 1
+      }
+    }
+  }
+
+  function onChange(e: any) {
+    indices.value = e.detail.value
+    updateText()
+  }
+
+  // 初始文本
+  updateText()
+
+  return { ranges, indices, text, onColumnChange, onChange }
 }
 
-function onEndTimeChange(e: any) {
-  const [y, m, d, h, min] = e.detail.value
-  endTimeValues.value = e.detail.value
-  form.endTime = formatTime(y, m, d, h, min)
-}
-function onEndColumnChange(e: any) {
-  endTimeRanges.value[e.detail.column] = [...baseTimeRanges[e.detail.column]]
-  endTimeValues.value[e.detail.column] = e.detail.value
-}
+const startPicker = createTimePicker()
+const endPicker = createTimePicker()
+const deadlinePicker = createTimePicker()
 
-function onDeadlineChange(e: any) {
-  const [y, m, d, h, min] = e.detail.value
-  deadlineValues.value = e.detail.value
-  form.registrationDeadline = formatTime(y, m, d, h, min)
-}
-function onDeadlineColumnChange(e: any) {
-  deadlineRanges.value[e.detail.column] = [...baseTimeRanges[e.detail.column]]
-  deadlineValues.value[e.detail.column] = e.detail.value
-}
+// 绑定到 form
 
 function onTypeChange(e: any) {
   form.activityType = activityTypes[e.detail.value]
@@ -269,6 +294,7 @@ function pickLocation() {
 }
 
 onShow(() => {
+  // 方式1: 通过 app.globalData（navigateBack 回调）
   const app = getApp()
   const picked = app?.globalData?.__pickedLocation
   if (picked && picked.latitude) {
@@ -276,10 +302,19 @@ onShow(() => {
     form.locationLng = picked.longitude
     form.locationName = picked.address || `${picked.latitude.toFixed(5)}, ${picked.longitude.toFixed(5)}`
     if (picked.city) form.city = picked.city
-    // 清除，避免重复读取
     if (app.globalData) {
       app.globalData.__pickedLocation = null
     }
+  }
+})
+
+// 方式2: 通过 uni.$on 事件（双重保障）
+uni.$on('locationPicked', (picked: any) => {
+  if (picked && picked.latitude) {
+    form.locationLat = picked.latitude
+    form.locationLng = picked.longitude
+    form.locationName = picked.address || `${picked.latitude.toFixed(5)}, ${picked.longitude.toFixed(5)}`
+    if (picked.city) form.city = picked.city
   }
 })
 
@@ -288,11 +323,11 @@ function validate(): boolean {
   if (!form.title.trim()) { errors.value = '请填写活动名称'; return false }
   if (!form.activityType) { errors.value = '请选择活动类型'; return false }
   if (!form.description.trim()) { errors.value = '请填写活动简介'; return false }
-  if (!form.startTime) { errors.value = '请选择开始时间'; return false }
-  if (!form.endTime) { errors.value = '请选择结束时间'; return false }
-  if (form.startTime >= form.endTime) { errors.value = '结束时间必须晚于开始时间'; return false }
-  if (!form.registrationDeadline) { errors.value = '请选择报名截止时间'; return false }
-  if (form.registrationDeadline >= form.startTime) { errors.value = '报名截止时间必须早于开始时间'; return false }
+  if (!startPicker.text.value) { errors.value = '请选择开始时间'; return false }
+  if (!endPicker.text.value) { errors.value = '请选择结束时间'; return false }
+  if (startPicker.text.value >= endPicker.text.value) { errors.value = '结束时间必须晚于开始时间'; return false }
+  if (!deadlinePicker.text.value) { errors.value = '请选择报名截止时间'; return false }
+  if (deadlinePicker.text.value >= startPicker.text.value) { errors.value = '报名截止时间必须早于开始时间'; return false }
   const max = Number(form.maxParticipants)
   if (!max || max <= 0) { errors.value = '人数上限必须大于0'; return false }
   if (form.feeType === 'paid') {
@@ -327,11 +362,11 @@ async function submit() {
       data: {
         title: form.title,
         description: form.description,
-        tags: form.tags ? form.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+        tags: form.tags,
         activity_type: form.activityType,
-        start_time: form.startTime,
-        end_time: form.endTime,
-        registration_deadline: form.registrationDeadline,
+        start_time: startPicker.text.value,
+        end_time: endPicker.text.value,
+        registration_deadline: deadlinePicker.text.value,
         max_participants: form.maxParticipants,
         min_credit_score: form.minCreditScore,
         fee_type: form.feeType,

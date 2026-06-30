@@ -3,6 +3,17 @@ import type { Activity } from '../types/domain'
 
 export type DiscoverTab = 'recommended' | 'latest' | 'nearby'
 
+/** 过滤 undefined 值，避免 uni-app 序列化为 "undefined" 字符串导致非法 URL */
+function cleanParams(params: Record<string, any>): Record<string, any> {
+  const cleaned: Record<string, any> = {}
+  for (const key of Object.keys(params)) {
+    if (params[key] !== undefined && params[key] !== null) {
+      cleaned[key] = params[key]
+    }
+  }
+  return cleaned
+}
+
 export function getActivities(tab: DiscoverTab, params?: { cursor?: string; limit?: number }) {
   const endpoint = tab === 'latest' ? '/discover/latest'
     : tab === 'nearby' ? '/discover/nearby'
@@ -10,7 +21,7 @@ export function getActivities(tab: DiscoverTab, params?: { cursor?: string; limi
   return request<Activity[]>({
     url: endpoint,
     method: 'GET',
-    data: { cursor: params?.cursor, limit: params?.limit || 20 },
+    data: cleanParams({ cursor: params?.cursor, limit: params?.limit || 20 }),
   })
 }
 
@@ -25,7 +36,7 @@ export function searchActivities(q: string, params?: { cursor?: string; limit?: 
   return request<Activity[]>({
     url: '/discover/search',
     method: 'GET',
-    data: { q, cursor: params?.cursor, limit: params?.limit || 20 },
+    data: cleanParams({ q, cursor: params?.cursor, limit: params?.limit || 20 }),
   })
 }
 
@@ -39,13 +50,13 @@ export function getNearbyActivities(params?: {
   return request<Activity[]>({
     url: '/discover/nearby',
     method: 'GET',
-    data: {
+    data: cleanParams({
       lat: params?.lat,
       lng: params?.lng,
       radius: params?.radius,
       cursor: params?.cursor,
       limit: params?.limit || 20,
-    },
+    }),
   })
 }
 
@@ -81,7 +92,7 @@ export function getMyCreatedActivities(params?: { cursor?: string; limit?: numbe
   return request<Activity[]>({
     url: '/users/me/created-activities',
     method: 'GET',
-    data: { cursor: params?.cursor, limit: params?.limit || 20 },
+    data: cleanParams({ cursor: params?.cursor, limit: params?.limit || 20 }),
   })
 }
 
@@ -89,6 +100,6 @@ export function getMyJoinedActivities(params?: { cursor?: string; limit?: number
   return request<Activity[]>({
     url: '/users/me/joined-activities',
     method: 'GET',
-    data: { cursor: params?.cursor, limit: params?.limit || 20 },
+    data: cleanParams({ cursor: params?.cursor, limit: params?.limit || 20 }),
   })
 }

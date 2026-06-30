@@ -69,19 +69,11 @@ function onMapTap(e: any) {
 }
 
 function reverseGeocode(lat: number, lng: number) {
-  // 使用微信内置地图的逆地理编码能力
-  const mapCtx = uni.createMapContext('map', undefined!)
-  // uni-app 的逆地理编码在微信小程序中需要借助第三方API
-  // 这里使用腾讯地图微信小程序SDK的逆地址解析，或后端接口
-  // 当前使用 uni.request 模拟，对接后端 /api/location/reverse-geocode
-  // 若后端未实现，前端降级为仅保存坐标
-  address.value = `(${lat.toFixed(5)}, ${lng.toFixed(5)})`
+  address.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`
   city.value = ''
 }
 
 function confirm() {
-  const eventChannel = getApp().globalData?.__locationPickerResult
-  // 使用全局事件传递位置数据
   const app = getApp()
   if (app) {
     app.globalData = app.globalData || {}
@@ -92,6 +84,12 @@ function confirm() {
       city: city.value,
     }
   }
+  uni.$emit('locationPicked', {
+    latitude: latitude.value,
+    longitude: longitude.value,
+    address: address.value,
+    city: city.value,
+  })
   uni.showToast({ title: '位置已选择', icon: 'success' })
   setTimeout(() => uni.navigateBack(), 400)
 }
