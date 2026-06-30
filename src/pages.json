@@ -2,7 +2,6 @@
   "pages": [
     {
       "path": "pages/launch/index",
-      "path": "pages/launch/index",
       "style": {
         "navigationBarTitleText": "趣聚"
       }
