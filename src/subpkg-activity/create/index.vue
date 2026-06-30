@@ -294,7 +294,7 @@ function pickLocation() {
 }
 
 onShow(() => {
-  // 方式1: 通过 app.globalData（navigateBack 回调）
+  // 地图选点：通过 app.globalData
   const app = getApp()
   const picked = app?.globalData?.__pickedLocation
   if (picked && picked.latitude) {
@@ -305,6 +305,12 @@ onShow(() => {
     if (app.globalData) {
       app.globalData.__pickedLocation = null
     }
+  }
+  // 草稿编辑：读取 editing_draft
+  const draft = uni.getStorageSync('editing_draft')
+  if (draft) {
+    Object.assign(form, draft)
+    uni.removeStorageSync('editing_draft')
   }
 })
 
@@ -344,7 +350,10 @@ function saveDraft() {
     uni.showToast({ title: '请至少填写活动名称', icon: 'none' })
     return
   }
-  uni.setStorageSync('activity_draft', { ...form, status: 'draft' })
+  const draft = { ...form, id: Date.now().toString(), status: 'draft' }
+  const existing: any[] = uni.getStorageSync('activity_drafts') || []
+  existing.unshift(draft)
+  uni.setStorageSync('activity_drafts', existing)
   uni.showToast({ title: '草稿已保存', icon: 'success' })
   setTimeout(() => uni.navigateBack(), 800)
 }
@@ -378,7 +387,8 @@ async function submit() {
         status: 'pending_ai_review',
       },
     })
-    uni.setStorageSync('activity_draft', null)
+    uni.setStorageSync('activity_drafts', null)
+    uni.setStorageSync('editing_draft', null)
     uni.showToast({ title: '提交成功，等待审核', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 1000)
   } catch (e: any) {

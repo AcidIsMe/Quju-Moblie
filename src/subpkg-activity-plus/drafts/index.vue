@@ -8,7 +8,7 @@
     <view v-for="draft in drafts" :key="draft.id" class="draft-card">
       <activity-card :activity="draft" />
       <view class="actions">
-        <button @tap="continueEdit">继续编辑</button>
+        <button @tap="continueEdit(draft)">继续编辑</button>
         <button class="danger" @tap="removeDraft(draft.id)">删除</button>
       </view>
     </view>
@@ -19,18 +19,42 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
 
-const drafts = ref<any[]>([])
+const DRAFT_KEY = 'activity_drafts'
 
-function continueEdit() {
+interface DraftItem {
+  id: string
+  title: string
+  [key: string]: any
+}
+
+const drafts = ref<DraftItem[]>([])
+
+function loadDrafts() {
+  try {
+    drafts.value = uni.getStorageSync(DRAFT_KEY) || []
+  } catch {
+    drafts.value = []
+  }
+}
+
+function continueEdit(draft: DraftItem) {
+  // 将选中草稿存入临时 key，创建页读取并预填
+  uni.setStorageSync('editing_draft', draft)
   uni.navigateTo({ url: '/subpkg-activity/create/index' })
 }
 
 function removeDraft(id: string) {
   drafts.value = drafts.value.filter((item) => item.id !== id)
+  uni.setStorageSync(DRAFT_KEY, drafts.value)
 }
+
+onShow(() => {
+  loadDrafts()
+})
 </script>
 
 <style scoped lang="scss">
