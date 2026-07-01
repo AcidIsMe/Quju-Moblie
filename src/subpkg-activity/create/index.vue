@@ -148,7 +148,7 @@ import { onShow } from '@dcloudio/uni-app'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import { navigateTo, routes } from '../../utils/routes'
 import { request } from '../../services/http'
-import { updateActivity } from '../../services/activity'
+import { updateActivity, submitActivity } from '../../services/activity'
 
 const activityTypes = ['运动健身', '户外徒步', '桌游聚会', '学习交流', '公益活动', '城市探索', '聚餐美食', '观影娱乐', '其他']
 
@@ -496,8 +496,9 @@ async function submit() {
   }
   try {
     if (draftId.value) {
-      // 编辑已有草稿 → 更新
+      // 编辑已有草稿 → 先保存最新数据，再提交审核
       await updateActivity(draftId.value, payload)
+      await submitActivity(draftId.value)
     } else {
       // 新建活动
       await request({

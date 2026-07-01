@@ -77,8 +77,11 @@
 
     <!-- 底部按钮 -->
     <view class="bottom-bar">
+      <!-- 草稿/驳回：创建者可编辑 -->
+      <button v-if="showEditBtn" class="btn-edit" @tap="goToEdit">{{ activity.status === 'rejected' ? '编辑并重新提交' : '编辑草稿' }}</button>
+
       <!-- 已下架 -->
-      <button v-if="btnState === 'taken_down'" class="btn-disabled">活动已下架</button>
+      <button v-else-if="btnState === 'taken_down'" class="btn-disabled">活动已下架</button>
 
       <!-- 已结束 -->
       <button v-else-if="btnState === 'ended'" class="btn-disabled">活动已结束</button>
@@ -112,6 +115,7 @@ import { cancelRegistration, joinWaitlist as joinActivityWaitlist } from '../../
 import type { Activity } from '../../types/domain'
 import { formatCapacity, formatFee } from '../../utils/format'
 import { navigateTo, routes } from '../../utils/routes'
+import { useAuthStore } from '../../stores/auth'
 
 const activity = ref<Activity | null>(null)
 
@@ -169,6 +173,26 @@ const btnState = computed<BtnState>(() => {
 
   return 'deadline_passed'
 })
+
+// ---- 当前用户是否为创建者 ----
+const auth = useAuthStore()
+const isCreator = computed(() => {
+  if (!activity.value?.creator?.id || !auth.state.user?.id) return false
+  return activity.value.creator.id === auth.state.user.id
+})
+
+// 草稿/驳回且是创建者时显示编辑入口
+const showEditBtn = computed(() => {
+  if (!isCreator.value) return false
+  return activity.value?.status === 'draft' || activity.value?.status === 'rejected'
+})
+
+// ---- 跳转编辑 ----
+function goToEdit() {
+  if (!activity.value) return
+  uni.setStorageSync('editing_draft', activity.value)
+  uni.navigateTo({ url: '/subpkg-activity/create/index' })
+}
 
 // ---- 操作 ----
 async function cancelJoin() {
@@ -408,7 +432,8 @@ function goToCreator() {
 .btn-primary,
 .btn-cancel,
 .btn-wait,
-.btn-disabled {
+.btn-disabled,
+.btn-edit {
   height: 96rpx;
   display: flex;
   align-items: center;
@@ -421,6 +446,11 @@ function goToCreator() {
 .btn-primary {
   background: #16a34a;
   color: #ffffff;
+}
+
+.btn-edit {
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .btn-cancel {
