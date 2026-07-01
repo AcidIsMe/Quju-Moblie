@@ -75,3 +75,12 @@ export async function logout() {
     await request<void>({ url: '/auth/logout', method: 'POST' })
   }
 }
+
+/** PUT /api/auth/password */
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  await request<void>({
+    url: '/auth/password',
+    method: 'PUT',
+    data: { old_password: oldPassword, new_password: newPassword },
+  })
+}

@@ -19,6 +19,7 @@ export const routes = {
   publicProfile: '/subpkg-user/public-profile/index',
   merchantRegister: '/subpkg-user/merchant-register/index',
   merchantProfile: '/subpkg-user/merchant-profile/index',
+  changePassword: '/subpkg-user/change-password/index',
   friends: '/subpkg-social/friends/index',
   friendRequests: '/subpkg-social/friend-requests/index',
   teams: '/subpkg-social/teams/index',

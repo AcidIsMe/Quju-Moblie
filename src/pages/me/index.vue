@@ -75,6 +75,10 @@
           <uni-icons type="shop-filled" size="24" color="#15803d" />
           <text>商家入驻</text>
         </view>
+        <view class="grid-item" @tap="goAuthed(routes.changePassword)">
+          <uni-icons type="locked-filled" size="24" color="#15803d" />
+          <text>修改密码</text>
+        </view>
       </view>
     </view>
 
