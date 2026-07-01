@@ -61,8 +61,19 @@ async function useTemplate(name: string) {
   const tpl = templates.value.find((t) => t.name === name)
   if (tpl) {
     try {
-      await useTemplateApi(tpl.id)
+      const result = await useTemplateApi(tpl.id)
+      // 将服务端返回的草稿存入本地存储，草稿箱即可展示
+      const draft = result.data
+      const existing: any[] = uni.getStorageSync('activity_drafts') || []
+      existing.unshift(draft)
+      uni.setStorageSync('activity_drafts', existing)
+      // 存入 editing_draft，创建页读取并预填
+      uni.setStorageSync('editing_draft', draft)
       uni.showToast({ title: `已基于「${name}」生成草稿`, icon: 'none' })
+      // 跳转到创建页进行编辑
+      setTimeout(() => {
+        uni.navigateTo({ url: '/subpkg-activity/create/index' })
+      }, 600)
     } catch {
       uni.showToast({ title: '使用模板失败', icon: 'none' })
     }

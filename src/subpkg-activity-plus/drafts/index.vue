@@ -18,10 +18,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/activity-card.vue'
 import EmptyState from '../../components/empty-state.vue'
+import { deleteActivity } from '../../services/activity'
+import { getMyCreatedActivities } from '../../services/user'
 
 const DRAFT_KEY = 'activity_drafts'
 
@@ -33,27 +35,67 @@ interface DraftItem {
 
 const drafts = ref<DraftItem[]>([])
 
-function loadDrafts() {
+function loadLocalDrafts(): DraftItem[] {
   try {
-    drafts.value = uni.getStorageSync(DRAFT_KEY) || []
+    return uni.getStorageSync(DRAFT_KEY) || []
   } catch {
-    drafts.value = []
+    return []
   }
 }
 
+async function loadDrafts() {
+  // 本地草稿（手动保存 + 模板创建后写入的）
+  const localMap = new Map<string, DraftItem>()
+  for (const d of loadLocalDrafts()) {
+    localMap.set(d.id, d)
+  }
+
+  // 服务端草稿（兜底：万一模板页没写入 localStorage）
+  try {
+    const result = await getMyCreatedActivities()
+    const all = (result.data as any[]) || []
+    for (const d of all) {
+      if (d.status === 'draft') {
+        // 本地已有的优先（可能包含用户手动编辑的最新数据）
+        if (!localMap.has(d.id)) {
+          localMap.set(d.id, d)
+        }
+      }
+    }
+  } catch { /* ignore */ }
+
+  drafts.value = Array.from(localMap.values())
+}
+
 function continueEdit(draft: DraftItem) {
-  // 将选中草稿存入临时 key，创建页读取并预填
   uni.setStorageSync('editing_draft', draft)
   uni.navigateTo({ url: '/subpkg-activity/create/index' })
 }
 
-function removeDraft(id: string) {
+async function removeDraft(id: string) {
+  try { await deleteActivity(id) } catch { /* ignore */ }
   drafts.value = drafts.value.filter((item) => item.id !== id)
-  uni.setStorageSync(DRAFT_KEY, drafts.value)
+  const local: DraftItem[] = loadLocalDrafts()
+  uni.setStorageSync(DRAFT_KEY, local.filter((item) => item.id !== id))
 }
 
-onShow(() => {
+onMounted(() => {
   loadDrafts()
+})
+
+onShow(() => {
+  // 每次回到页面时刷新本地草稿（响应模板页写入的最新数据）
+  const local = loadLocalDrafts()
+  const localIds = new Set(local.map((d) => d.id))
+  // 合并：本地覆盖已有 + 新增本地独有
+  const merged = new Map<string, DraftItem>()
+  for (const d of drafts.value) {
+    if (!localIds.has(d.id)) merged.set(d.id, d)
+  }
+  for (const d of local) {
+    merged.set(d.id, d)
+  }
+  drafts.value = Array.from(merged.values())
 })
 </script>
 

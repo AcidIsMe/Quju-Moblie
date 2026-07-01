@@ -45,25 +45,34 @@
       <text class="section-title">时间地点</text>
 
       <!-- 开始时间 -->
-      <picker mode="multiSelector" :range="startPicker.ranges" :value="startPicker.indices" @change="startPicker.onChange" @columnchange="startPicker.onColumnChange">
-        <view class="picker-field">
-          <text :class="{ placeholder: !startPicker.text.value }">{{ startPicker.text.value || '选择开始时间' }}</text>
-        </view>
-      </picker>
+      <view class="input-row">
+        <text class="input-label">开始时间</text>
+        <picker mode="multiSelector" :range="startPicker.ranges" :value="startPicker.indices" @change="startPicker.onChange" @columnchange="startPicker.onColumnChange">
+          <view class="picker-field">
+            <text>{{ startPicker.text.value || '请选择' }}</text>
+          </view>
+        </picker>
+      </view>
 
       <!-- 结束时间 -->
-      <picker mode="multiSelector" :range="endPicker.ranges" :value="endPicker.indices" @change="endPicker.onChange" @columnchange="endPicker.onColumnChange">
-        <view class="picker-field">
-          <text :class="{ placeholder: !endPicker.text.value }">{{ endPicker.text.value || '选择结束时间' }}</text>
-        </view>
-      </picker>
+      <view class="input-row">
+        <text class="input-label">结束时间</text>
+        <picker mode="multiSelector" :range="endPicker.ranges" :value="endPicker.indices" @change="endPicker.onChange" @columnchange="endPicker.onColumnChange">
+          <view class="picker-field">
+            <text>{{ endPicker.text.value || '请选择' }}</text>
+          </view>
+        </picker>
+      </view>
 
       <!-- 报名截止时间 -->
-      <picker mode="multiSelector" :range="deadlinePicker.ranges" :value="deadlinePicker.indices" @change="deadlinePicker.onChange" @columnchange="deadlinePicker.onColumnChange">
-        <view class="picker-field">
-          <text :class="{ placeholder: !deadlinePicker.text.value }">{{ deadlinePicker.text.value || '选择报名截止时间' }}</text>
-        </view>
-      </picker>
+      <view class="input-row">
+        <text class="input-label">报名截止</text>
+        <picker mode="multiSelector" :range="deadlinePicker.ranges" :value="deadlinePicker.indices" @change="deadlinePicker.onChange" @columnchange="deadlinePicker.onColumnChange">
+          <view class="picker-field">
+            <text>{{ deadlinePicker.text.value || '请选择' }}</text>
+          </view>
+        </picker>
+      </view>
 
       <!-- 城市 -->
       <input v-model="form.city" class="input" placeholder="活动城市（如：北京）" :maxlength="50" />
@@ -139,6 +148,7 @@ import { onShow } from '@dcloudio/uni-app'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import { navigateTo, routes } from '../../utils/routes'
 import { request } from '../../services/http'
+import { updateActivity } from '../../services/activity'
 
 const activityTypes = ['运动健身', '户外徒步', '桌游聚会', '学习交流', '公益活动', '城市探索', '聚餐美食', '观影娱乐', '其他']
 
@@ -163,6 +173,7 @@ const tagInput = ref('')
 const showTagInput = ref(false)
 const errors = ref('')
 const submitting = ref(false)
+const draftId = ref('') // 服务端草稿 ID，非空表示编辑已有草稿
 
 // ---- 时间选择器 ----
 const now = new Date()
@@ -242,7 +253,7 @@ function createTimePicker() {
   // 初始文本
   updateText()
 
-  return { ranges, indices, text, onColumnChange, onChange }
+  return { ranges, indices, text, onColumnChange, onChange, updateText }
 }
 
 const startPicker = createTimePicker()
@@ -293,6 +304,76 @@ function pickLocation() {
   navigateTo(routes.locationPicker)
 }
 
+// ---- 解析 ISO 时间字符串设置 picker ----
+function parseTimeToIndices(timeStr: string): number[] | null {
+  if (!timeStr) return null
+  // 兼容 ISO 格式：2026-07-15T09:00:00 或带时区
+  const m = timeStr.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/)
+  if (!m) return null
+  const year = parseInt(m[1]), month = parseInt(m[2]), day = parseInt(m[3])
+  const hour = parseInt(m[4]), minute = parseInt(m[5])
+  const yi = YEAR_LIST.indexOf(year)
+  const mi = month - 1
+  if (yi < 0 || mi < 0 || mi > 11) return null
+  // 确保日列表包含该日
+  const dayList = makeDayList(yi, mi)
+  let di = day - 1
+  if (di < 0) di = 0
+  if (di >= dayList.length) di = dayList.length - 1
+  const hi = HOUR_LIST.indexOf(hour)
+  const mini = MINUTE_LIST.indexOf(minute)
+  return [yi, mi, di, hi >= 0 ? hi : 0, mini >= 0 ? mini : 0]
+}
+
+function applyPickerTime(picker: ReturnType<typeof createTimePicker>, indices: number[]) {
+  picker.indices.value = indices
+  // 确保日列表匹配
+  picker.ranges.value[2] = makeDayList(indices[0], indices[1])
+  picker.updateText()
+}
+
+// ---- 将草稿数据映射到表单 ----
+function applyDraft(draft: any) {
+  // 通用字段：兼容 snake_case (API) 与 camelCase (手动草稿)
+  form.title = draft.title || ''
+  form.activityType = draft.activity_type || draft.activityType || ''
+  form.coverImageUrl = draft.cover_image_url || draft.coverImageUrl || ''
+  form.tags = draft.tags || []
+  form.description = draft.description || ''
+  form.city = draft.city || ''
+  form.locationName = draft.location_name || draft.locationName || ''
+  form.locationLat = draft.location_lat ?? draft.locationLat ?? 0
+  form.locationLng = draft.location_lng ?? draft.locationLng ?? 0
+  form.maxParticipants = String(draft.max_participants ?? draft.maxParticipants ?? '')
+  form.feeType = draft.fee_type || draft.feeType || 'free'
+  form.feeAmount = String(draft.fee_amount ?? draft.feeAmount ?? '')
+  form.minCreditScore = String(draft.min_credit_score ?? draft.minCreditScore ?? '')
+  form.minAge = String(draft.min_age ?? draft.minAge ?? '')
+
+  // 时间字段
+  const startStr = draft.start_time || draft.startTime
+  const endStr = draft.end_time || draft.endTime
+  const deadlineStr = draft.registration_deadline || draft.registrationDeadline
+
+  if (startStr) {
+    const idx = parseTimeToIndices(startStr)
+    if (idx) applyPickerTime(startPicker, idx)
+  }
+  if (endStr) {
+    const idx = parseTimeToIndices(endStr)
+    if (idx) applyPickerTime(endPicker, idx)
+  }
+  if (deadlineStr) {
+    const idx = parseTimeToIndices(deadlineStr)
+    if (idx) applyPickerTime(deadlinePicker, idx)
+  }
+
+  // 记录服务端草稿 ID（UUID 格式），区分本地临时草稿（时间戳）
+  if (draft.id && !/^\d{10,}$/.test(draft.id)) {
+    draftId.value = draft.id
+  }
+}
+
 onShow(() => {
   // 地图选点：通过 app.globalData
   const app = getApp()
@@ -309,7 +390,7 @@ onShow(() => {
   // 草稿编辑：读取 editing_draft
   const draft = uni.getStorageSync('editing_draft')
   if (draft) {
-    Object.assign(form, draft)
+    applyDraft(draft)
     uni.removeStorageSync('editing_draft')
   }
 })
@@ -350,9 +431,40 @@ function saveDraft() {
     uni.showToast({ title: '请至少填写活动名称', icon: 'none' })
     return
   }
-  const draft = { ...form, id: Date.now().toString(), status: 'draft' }
+  const draftData = { ...form, id: draftId.value || Date.now().toString(), status: 'draft' }
   const existing: any[] = uni.getStorageSync('activity_drafts') || []
-  existing.unshift(draft)
+
+  if (draftId.value) {
+    // 更新已有服务端草稿的本地副本
+    const idx = existing.findIndex((d: any) => d.id === draftId.value)
+    if (idx >= 0) {
+      existing[idx] = { ...existing[idx], ...draftData }
+    } else {
+      existing.unshift(draftData)
+    }
+    // 同步到服务端
+    updateActivity(draftId.value, {
+      title: form.title,
+      description: form.description,
+      tags: form.tags,
+      activity_type: form.activityType,
+      start_time: startPicker.text.value,
+      end_time: endPicker.text.value,
+      registration_deadline: deadlinePicker.text.value,
+      max_participants: Number(form.maxParticipants),
+      min_credit_score: Number(form.minCreditScore),
+      min_age: Number(form.minAge),
+      fee_type: form.feeType,
+      fee_amount: form.feeType === 'paid' ? Number(form.feeAmount) : 0,
+      location_name: form.locationName,
+      location_lat: form.locationLat,
+      location_lng: form.locationLng,
+      city: form.city || '',
+    }).catch(() => {})
+  } else {
+    existing.unshift(draftData)
+  }
+
   uni.setStorageSync('activity_drafts', existing)
   uni.showToast({ title: '草稿已保存', icon: 'success' })
   setTimeout(() => uni.navigateBack(), 800)
@@ -364,30 +476,41 @@ async function submit() {
     return
   }
   submitting.value = true
+  const payload = {
+    title: form.title,
+    description: form.description,
+    tags: form.tags,
+    activity_type: form.activityType,
+    start_time: startPicker.text.value,
+    end_time: endPicker.text.value,
+    registration_deadline: deadlinePicker.text.value,
+    max_participants: form.maxParticipants,
+    min_credit_score: form.minCreditScore,
+    fee_type: form.feeType,
+    fee_amount: form.feeType === 'paid' ? form.feeAmount : 0,
+    location_name: form.locationName,
+    location_lat: form.locationLat,
+    location_lng: form.locationLng,
+    city: form.city || '',
+    status: 'pending_ai_review',
+  }
   try {
-    await request({
-      url: '/activities',
-      method: 'POST',
-      data: {
-        title: form.title,
-        description: form.description,
-        tags: form.tags,
-        activity_type: form.activityType,
-        start_time: startPicker.text.value,
-        end_time: endPicker.text.value,
-        registration_deadline: deadlinePicker.text.value,
-        max_participants: form.maxParticipants,
-        min_credit_score: form.minCreditScore,
-        fee_type: form.feeType,
-        fee_amount: form.feeType === 'paid' ? form.feeAmount : 0,
-        location_name: form.locationName,
-        location_lat: form.locationLat,
-        location_lng: form.locationLng,
-        city: form.city || '',
-        status: 'pending_ai_review',
-      },
-    })
-    uni.setStorageSync('activity_drafts', null)
+    if (draftId.value) {
+      // 编辑已有草稿 → 更新
+      await updateActivity(draftId.value, payload)
+    } else {
+      // 新建活动
+      await request({
+        url: '/activities',
+        method: 'POST',
+        data: payload,
+      })
+    }
+    // 清除本地草稿
+    if (draftId.value) {
+      const existing: any[] = uni.getStorageSync('activity_drafts') || []
+      uni.setStorageSync('activity_drafts', existing.filter((d: any) => d.id !== draftId.value))
+    }
     uni.setStorageSync('editing_draft', null)
     uni.showToast({ title: '提交成功，等待审核', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 1000)
@@ -441,6 +564,8 @@ async function submit() {
 }
 
 .picker-field {
+  flex: 1;
+  min-width: 0;
   height: 84rpx;
   display: flex;
   align-items: center;
@@ -555,6 +680,11 @@ async function submit() {
   display: flex;
   align-items: center;
   gap: 16rpx;
+}
+
+.input-row picker {
+  flex: 1;
+  min-width: 0;
 }
 
 .input-label {
